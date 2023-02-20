@@ -1,9 +1,9 @@
 package main
 
 import (
-	"git.jetbrains.space/philldev/tcc/internal/log"
-	"git.jetbrains.space/philldev/tcc/internal/wireup"
-	"git.jetbrains.space/philldev/tcc/pkg/ping"
+	"github.com/F-Amaral/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/wireup"
+	"github.com/F-Amaral/tcc/pkg/ping"
 	"go.uber.org/fx"
 )
 

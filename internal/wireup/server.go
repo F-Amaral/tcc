@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.jetbrains.space/philldev/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/log"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 	"time"

@@ -2,7 +2,7 @@ package apierrors
 
 import (
 	"context"
-	"git.jetbrains.space/philldev/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/log"
 	"net/http"
 )
 

@@ -1,9 +1,9 @@
 package ping
 
 import (
-	"git.jetbrains.space/philldev/tcc/internal/log"
-	"git.jetbrains.space/philldev/tcc/internal/web"
-	"git.jetbrains.space/philldev/tcc/internal/wireup"
+	"github.com/F-Amaral/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/web"
+	"github.com/F-Amaral/tcc/internal/wireup"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 	"net/http"
