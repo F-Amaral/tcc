@@ -1,6 +1,6 @@
 package level
 
-import "github.com/F-Amaral/tcc/pkg/adjlist/domain/entity"
+import "github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 
 func GetNodeLevel(nodeID string, nodes []*entity.Node) int {
 	if nodeID == "" {

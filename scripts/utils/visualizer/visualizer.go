@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/F-Amaral/tcc/pkg/adjlist/domain/entity"
+	"fmt"
+	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/F-Amaral/tcc/scripts/utils/parser"
 	"github.com/gizak/termui/v3"
@@ -14,18 +15,27 @@ func main() {
 		panic(err)
 	}
 
-	nodes, err := parser.ParseData(csvData)
+	adjNodes, err := parser.ParseData(csvData)
 	if err != nil {
 		panic(err)
 	}
+
+	nestedNodes := parser.ConvertToNestedSet(adjNodes)
+
 	if err := termui.Init(); err != nil {
 		panic(err)
 	}
 	defer termui.Close()
 
-	tree := createTree(nodes)
-	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
-	tree.WrapText = false
+	var tree *widgets.Tree
+	switch nn := interface{}(nestedNodes[0]).(type) {
+	case entity.NestedNode:
+		tree = createNestedTree(nestedNodes)
+	case entity.Node:
+		tree = createNodeTree(adjNodes)
+	default:
+		panic(fmt.Sprintf("unknown tree type: %T", nn))
+	}
 
 	x, y := termui.TerminalDimensions()
 
@@ -33,16 +43,51 @@ func main() {
 	termui.Render(tree)
 
 	handleUiInput(tree)
-
 }
 
-func createTree(nodes []entity.Node) *widgets.Tree {
+func createNodeTree(nodes []entity.Node) *widgets.Tree {
 	tree := widgets.NewTree()
 	tree.Title = "Tree"
 	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
 	tree.SetNodes(createTreeNodes(nodes, ""))
 
 	return tree
+}
+
+func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
+	tree := widgets.NewTree()
+	tree.Title = "Nested Set Tree"
+	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
+	tree.SetNodes(createNestedTreeNodes(nodes, 1, 2*len(nodes)))
+
+	return tree
+}
+
+func createNestedTreeNodes(nodes []entity.NestedNode, left, right int) []*widgets.TreeNode {
+	var treeNodes []*widgets.TreeNode
+
+	for _, node := range nodes {
+		if node.Left >= left && node.Right < right {
+			children := createNestedTreeNodes(nodes, node.Left, node.Right)
+			treeNode := &widgets.TreeNode{
+				Value:    node,
+				Expanded: false,
+				Nodes:    children,
+			}
+
+			treeNodes = append(treeNodes, treeNode)
+		} else if node.Left == left && node.Right == right {
+			treeNode := &widgets.TreeNode{
+				Value:    node,
+				Expanded: false,
+				Nodes:    nil,
+			}
+
+			treeNodes = append(treeNodes, treeNode)
+		}
+	}
+
+	return treeNodes
 }
 
 func createTreeNodes(nodes []entity.Node, parentID string) []*widgets.TreeNode {

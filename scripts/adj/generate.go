@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/F-Amaral/tcc/pkg/adjlist/domain/entity"
+	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/google/uuid"
 	"math/rand"
 )
 
 func main() {
-	numNodes := 20
+	numNodes := 5
 	avgDepth := 3
 	maxDepth := 6
 	prob := 0.6
