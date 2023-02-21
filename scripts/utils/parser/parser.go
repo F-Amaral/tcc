@@ -1,8 +1,10 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	treeUtil "github.com/F-Amaral/tcc/scripts/utils/level"
+	"sort"
 )
 
 func ParseData(records [][]string) ([]entity.Node, error) {
@@ -23,58 +25,93 @@ func ParseData(records [][]string) ([]entity.Node, error) {
 	}
 
 	for _, node := range nodesPtr {
-		level := treeUtil.GetNodeLevel(node.Id, nodesPtr)
+		level := treeUtil.GetNodeLevel(node.ParentId, nodesPtr)
 		node.Level = level
 		nodes = append(nodes, *node)
+		print(fmt.Sprintf("%v", node))
 	}
 
 	return nodes, nil
+
 }
 
-func ConvertToNestedSet(adjNodes []entity.Node) []entity.NestedNode {
-	var nestedNodes []entity.NestedNode
-	left := 1
-
-	for _, adjNode := range adjNodes {
-		nestedNode := entity.NestedNode{
-			Id:    adjNode.Id,
-			Level: adjNode.Level,
+func ConvertToNestedSet(nodes []entity.Node) []entity.NestedNode {
+	var rootNode *entity.Node
+	for i := range nodes {
+		if nodes[i].ParentId == "" {
+			rootNode = &nodes[i]
+			break
 		}
-
-		if adjNode.ParentId == "" {
-			nestedNode.Left = left
-			left++
-		} else {
-			parentIndex := getNodeIndex(nestedNodes, adjNode.ParentId)
-			nestedNode.Left = nestedNodes[parentIndex].Right
-			left = nestedNodes[parentIndex].Right + 1
-			updateRightValues(nestedNodes, parentIndex, nestedNode.Left-1)
-		}
-
-		nestedNode.Right = left
-		left++
-
-		nestedNodes = append(nestedNodes, nestedNode)
 	}
 
+	treeMap := buildTreeMap(rootNode.Id, nodes)
+	_, nestedSet := buildNestedSet(rootNode, 1, treeMap)
+	return sortNestedSet(nestedSet)
+}
+
+func buildTreeMap(rootId string, nodes []entity.Node) map[string][]*entity.Node {
+	treeMap := make(map[string][]*entity.Node)
+	rootChildren := removeParentFromNodeSlice(rootId, nodes)
+
+	for _, node := range rootChildren {
+		treeMap[node.ParentId] = append(treeMap[node.ParentId], node)
+	}
+	return treeMap
+}
+
+func removeParentFromNodeSlice(parentId string, nodes []entity.Node) []*entity.Node {
+	var childNodes []*entity.Node
+	for _, node := range nodes {
+		if node.Id != parentId {
+			n2 := node
+			childNodes = append(childNodes, &n2)
+		}
+	}
+
+	return childNodes
+}
+
+func createNestedNode(node entity.Node, left, right int) entity.NestedNode {
+	return entity.NestedNode{
+		Id:       node.Id,
+		ParentId: node.ParentId,
+		Left:     left,
+		Right:    right,
+		Level:    node.Level,
+	}
+}
+
+func buildNestedSet(node *entity.Node, left int, treeMap map[string][]*entity.Node) (int, []*entity.NestedNode) {
+	var nestedNodes []*entity.NestedNode
+
+	leftValue := left
+	rightValue := left + 1
+
+	// Process each child node recursively
+	for _, childNode := range treeMap[node.Id] {
+		right, nestedChildNodes := buildNestedSet(childNode, rightValue, treeMap)
+		rightValue = right
+		nestedNodes = append(nestedNodes, nestedChildNodes...)
+	}
+
+	// Create a NestedNode for this node and append it to the result slice
+	nestedNode := createNestedNode(*node, leftValue, rightValue)
+	nestedNodes = append(nestedNodes, &nestedNode)
+
+	// Update the right value for this node
+	rightValue++
+
+	return rightValue, nestedNodes
+}
+
+func sortNestedSet(ptrs []*entity.NestedNode) []entity.NestedNode {
+	nestedNodes := make([]entity.NestedNode, 0)
+	for _, ptr := range ptrs {
+		nestedNodes = append(nestedNodes, *ptr)
+	}
+
+	sort.Slice(nestedNodes, func(i, j int) bool {
+		return nestedNodes[i].Left < nestedNodes[j].Left
+	})
 	return nestedNodes
-}
-
-func updateRightValues(nestedNodes []entity.NestedNode, start int, adjust int) {
-	for i := start; i < len(nestedNodes); i++ {
-		if nestedNodes[i].Left > adjust {
-			nestedNodes[i].Left += 2
-			nestedNodes[i].Right += 2
-		}
-	}
-}
-
-func getNodeIndex(nestedNodes []entity.NestedNode, nodeId string) int {
-	for i, node := range nestedNodes {
-		if node.Id == nodeId {
-			return i
-		}
-	}
-
-	return -1
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/F-Amaral/tcc/scripts/utils/parser"
@@ -27,15 +26,7 @@ func main() {
 	}
 	defer termui.Close()
 
-	var tree *widgets.Tree
-	switch nn := interface{}(nestedNodes[0]).(type) {
-	case entity.NestedNode:
-		tree = createNestedTree(nestedNodes)
-	case entity.Node:
-		tree = createNodeTree(adjNodes)
-	default:
-		panic(fmt.Sprintf("unknown tree type: %T", nn))
-	}
+	tree := createNestedTree(nestedNodes)
 
 	x, y := termui.TerminalDimensions()
 
@@ -45,69 +36,53 @@ func main() {
 	handleUiInput(tree)
 }
 
-func createNodeTree(nodes []entity.Node) *widgets.Tree {
+func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
 	tree := widgets.NewTree()
 	tree.Title = "Tree"
 	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
-	tree.SetNodes(createTreeNodes(nodes, ""))
+	tree.SetNodes(createNestedTreeNodes(nodes))
 
 	return tree
 }
 
-func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
-	tree := widgets.NewTree()
-	tree.Title = "Nested Set Tree"
-	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
-	tree.SetNodes(createNestedTreeNodes(nodes, 1, 2*len(nodes)))
-
-	return tree
-}
-
-func createNestedTreeNodes(nodes []entity.NestedNode, left, right int) []*widgets.TreeNode {
-	var treeNodes []*widgets.TreeNode
-
+func createNestedTreeNodes(nodes []entity.NestedNode) []*widgets.TreeNode {
+	var rootNodes []*widgets.TreeNode
 	for _, node := range nodes {
-		if node.Left >= left && node.Right < right {
-			children := createNestedTreeNodes(nodes, node.Left, node.Right)
-			treeNode := &widgets.TreeNode{
+		if node.ParentId == "" {
+			rootNode := &widgets.TreeNode{
 				Value:    node,
-				Expanded: false,
-				Nodes:    children,
+				Expanded: true,
+				Nodes:    getNestedNodeChildren(nodes, node.Id),
 			}
-
-			treeNodes = append(treeNodes, treeNode)
-		} else if node.Left == left && node.Right == right {
-			treeNode := &widgets.TreeNode{
-				Value:    node,
-				Expanded: false,
-				Nodes:    nil,
-			}
-
-			treeNodes = append(treeNodes, treeNode)
+			rootNodes = append(rootNodes, rootNode)
 		}
 	}
-
-	return treeNodes
+	return rootNodes
 }
 
-func createTreeNodes(nodes []entity.Node, parentID string) []*widgets.TreeNode {
-	var treeNodes []*widgets.TreeNode
-
+func getNestedNodeChildren(nodes []entity.NestedNode, parentId string) []*widgets.TreeNode {
+	var children []*widgets.TreeNode
 	for _, node := range nodes {
-		if node.ParentId == parentID {
-			children := createTreeNodes(nodes, node.Id)
+		if node.ParentId == parentId {
 			treeNode := &widgets.TreeNode{
 				Value:    node,
-				Expanded: false,
-				Nodes:    children,
+				Expanded: true,
 			}
-
-			treeNodes = append(treeNodes, treeNode)
+			treeNode.Nodes = getNestedNodeChildren(nodes, node.Id)
+			children = append(children, treeNode)
 		}
 	}
-
-	return treeNodes
+	return children
 }
+
+//func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
+//	tree := widgets.NewTree()
+//	tree.Title = "Nested Set Tree"
+//	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
+//	tree.SetNodes(createNestedTreeNodes(nodes, 1, 2*len(nodes)))
+//
+//	return tree
+//}
 
 func handleUiInput(tree *widgets.Tree) {
 	previousKey := ""

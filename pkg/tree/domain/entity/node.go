@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -23,5 +24,7 @@ func (n Node) String() string {
 }
 
 func (n NestedNode) String() string {
-	return fmt.Sprintf("%s (Level %d)", n.Id, n.Level)
+	bytes, _ := json.Marshal(n)
+	return string(bytes)
+
 }
