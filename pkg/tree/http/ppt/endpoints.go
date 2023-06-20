@@ -7,6 +7,7 @@ import (
 func RegisterHandlers(server *wireup.Server, handler *PptHandler) {
 	server.Engine.GET("/ppt/:id", handler.GetTree)
 	server.Engine.POST("/ppt/:parentId/:childId", handler.AddToParent)
+	server.Engine.POST("/ppt/upload", handler.UploadCSV)
 	server.Engine.DELETE("/ppt/:parentId/:childId", handler.RemoveFromParent)
 
 }

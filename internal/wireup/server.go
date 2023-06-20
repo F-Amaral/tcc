@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/F-Amaral/tcc/internal/log"
-	"github.com/gin-gonic/gin"
+	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/fx"
 	"time"
 )
@@ -23,8 +24,10 @@ type Server struct {
 	Engine *gin.Engine
 }
 
-func NewServer() *Server {
-	server := Server{Engine: gin.Default()}
+func NewServer(logger log.Logger, tracer *trace.TracerProvider) *Server {
+	server := Server{
+		Engine: gin.New(),
+	}
 	return &server
 }
 
