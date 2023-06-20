@@ -8,4 +8,5 @@ import (
 
 var Module = fx.Provide(
 	fx.Annotate(mysql.NewPpt, fx.ResultTags(constants.PPTRepositoryName)),
+	fx.Annotate(mysql.NewNested, fx.ResultTags(constants.NestedRepositoryName)),
 )

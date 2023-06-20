@@ -1,8 +1,12 @@
 package tree
 
 import (
+	"github.com/F-Amaral/tcc/pkg/tree/http/nested"
 	"github.com/F-Amaral/tcc/pkg/tree/http/ppt"
 	"go.uber.org/fx"
 )
 
-var Module = fx.Invoke(ppt.RegisterHandlers)
+var Module = fx.Invoke(
+	ppt.RegisterHandlers,
+	nested.RegisterHandlers,
+)

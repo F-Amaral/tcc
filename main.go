@@ -7,6 +7,7 @@ import (
 	"github.com/F-Amaral/tcc/internal/wireup"
 	"github.com/F-Amaral/tcc/pkg/ping"
 	"github.com/F-Amaral/tcc/pkg/tree"
+	"github.com/F-Amaral/tcc/pkg/tree/http/nested"
 	"github.com/F-Amaral/tcc/pkg/tree/http/ppt"
 	"github.com/F-Amaral/tcc/pkg/tree/repository"
 	"github.com/F-Amaral/tcc/pkg/tree/service"
@@ -23,6 +24,7 @@ func main() {
 		repository.Module,
 		service.Module,
 		ppt.Module,
+		nested.Module,
 		tree.Module,
 		ping.Module,
 	)

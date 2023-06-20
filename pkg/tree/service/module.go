@@ -7,4 +7,5 @@ import (
 
 var Module = fx.Provide(
 	fx.Annotate(NewPpt, fx.ParamTags(constants.PPTRepositoryName), fx.ResultTags(constants.PPTServiceName)),
+	fx.Annotate(NewNested, fx.ParamTags(constants.NestedRepositoryName), fx.ResultTags(constants.NestedServiceName)),
 )
