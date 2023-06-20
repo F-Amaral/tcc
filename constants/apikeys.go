@@ -1,7 +1,9 @@
 package constants
 
 const (
-	EnvironmentKey = "environment"
+	ApiNameKey     = "api.name"
+	EnvironmentKey = "api.environment"
+	HeliosApiKey   = "api.telemetry.helios.apikey"
 	PPtDbDsnKey    = "database.ppt.dsn"
 	NestedDbDsnKey = "database.nested.dsn"
 )

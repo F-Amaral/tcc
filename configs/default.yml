@@ -1,4 +1,10 @@
- database:
+api:
+  name: "tcc"
+  environment: "local"
+  telemetry:
+    helios:
+      apikey: "4eb2ae6ae3cb2bacbb8e"
+database:
     ppt:
       dsn: "root:tcc-pw@tcp(127.0.0.1:3306)/ppt?charset=utf8mb4&parseTime=True&loc=Local"
     nested:

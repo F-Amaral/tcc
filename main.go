@@ -17,8 +17,8 @@ import (
 func main() {
 
 	app := fx.New(
-		trace.Module,
 		config.Module,
+		trace.Module,
 		log.Module,
 		wireup.Module,
 		repository.Module,
