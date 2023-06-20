@@ -75,15 +75,6 @@ func getNestedNodeChildren(nodes []entity.NestedNode, parentId string) []*widget
 	return children
 }
 
-//func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
-//	tree := widgets.NewTree()
-//	tree.Title = "Nested Set Tree"
-//	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
-//	tree.SetNodes(createNestedTreeNodes(nodes, 1, 2*len(nodes)))
-//
-//	return tree
-//}
-
 func handleUiInput(tree *widgets.Tree) {
 	previousKey := ""
 	uiEvents := termui.PollEvents()

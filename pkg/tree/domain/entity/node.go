@@ -9,6 +9,7 @@ type Node struct {
 	Id       string
 	ParentId string
 	Level    int
+	Children []*Node
 }
 
 type NestedNode struct {

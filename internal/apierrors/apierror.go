@@ -2,21 +2,67 @@ package apierrors
 
 import (
 	"context"
-	"github.com/F-Amaral/tcc/internal/log"
+	"fmt"
 	"net/http"
 )
 
-type ApiError struct {
-	Msg    string `json:"msg"`
-	Code   string `json:"code"`
-	Status int    `json:"status"`
+type ApiError interface {
+	Status() int
+	Code() string
+	Msg() string
+	Error() string
 }
 
-func BuildErrorWithContext(ctx context.Context, err error) *ApiError {
-	log.Err(err)
-	return &ApiError{
-		Msg:    err.Error(),
-		Code:   err.Error(),
-		Status: http.StatusInternalServerError,
+type apiError struct {
+	Message   string `json:"msg"`
+	ErrCode   string `json:"code"`
+	ErrStatus int    `json:"status"`
+}
+
+func BuildErrorWithContext(ctx context.Context, err error) ApiError {
+	return &apiError{
+		Message:   err.Error(),
+		ErrCode:   err.Error(),
+		ErrStatus: http.StatusInternalServerError,
 	}
+}
+
+func NewInternalServerApiError(msg string) ApiError {
+	return &apiError{
+		Message:   msg,
+		ErrCode:   "internal_server_error",
+		ErrStatus: http.StatusInternalServerError,
+	}
+}
+
+func NewBadRequestError(msg string) ApiError {
+	return &apiError{
+		Message:   msg,
+		ErrCode:   "bad_request",
+		ErrStatus: http.StatusBadRequest,
+	}
+}
+
+func NewNotFoundApiError(msg string) ApiError {
+	return &apiError{
+		Message:   msg,
+		ErrCode:   "not_found",
+		ErrStatus: http.StatusNotFound,
+	}
+}
+
+func (a apiError) Status() int {
+	return a.ErrStatus
+}
+
+func (a apiError) Code() string {
+	return a.ErrCode
+}
+
+func (a apiError) Msg() string {
+	return a.Message
+}
+
+func (a apiError) Error() string {
+	return fmt.Sprintf("[%d] - Code: %s, Message: %s", a.ErrStatus, a.ErrCode, a.Msg)
 }

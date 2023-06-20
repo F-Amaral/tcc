@@ -1,0 +1,3 @@
+ database:
+    ppt:
+      dsn: "root:tcc-pw@tcp(127.0.0.1:3306)/ppt?charset=utf8mb4&parseTime=True&loc=Local"
