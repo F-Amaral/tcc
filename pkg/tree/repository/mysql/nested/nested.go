@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/F-Amaral/tcc/constants"
 	"github.com/F-Amaral/tcc/internal/apierrors"
+	"github.com/F-Amaral/tcc/internal/log"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/nested/contracts"
@@ -13,14 +14,17 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"moul.io/zapgorm2"
 )
 
 type nested struct {
 	db *gorm.DB
 }
 
-func NewNested(config *viper.Viper) (repositories.NestedTree, error) {
-	db, err := gorm.Open(mysql.Open(config.GetString(constants.NestedDbDsnKey)), &gorm.Config{})
+func NewNested(config *viper.Viper, logger log.Logger) (repositories.NestedTree, error) {
+	logWrap := zapgorm2.New(logger.Desugar())
+	logWrap.SetAsDefault()
+	db, err := gorm.Open(mysql.Open(config.GetString(constants.NestedDbDsnKey)), &gorm.Config{Logger: logWrap})
 	if err != nil {
 		return nil, err
 	}
