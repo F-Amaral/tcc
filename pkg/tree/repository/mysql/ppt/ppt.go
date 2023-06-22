@@ -1,4 +1,4 @@
-package mysql
+package ppt
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/F-Amaral/tcc/internal/apierrors"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
-	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/contracts"
+	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/ppt/contracts"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -25,6 +25,12 @@ func NewPpt(config *viper.Viper) (repositories.Tree, error) {
 	}
 
 	err = db.AutoMigrate(&contracts.Node{})
+
+	//err = db.Use(tracing.NewPlugin(tracing.WithDBName("ppt")))
+	//if err != nil {
+	//	return nil, err
+	//}
+
 	if err != nil {
 		return nil, err
 	}
@@ -33,27 +39,27 @@ func NewPpt(config *viper.Viper) (repositories.Tree, error) {
 	}, nil
 }
 
-func (p ppt) Save(_ context.Context, node *entity.Node) apierrors.ApiError {
-	result := p.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(contracts.MapFromEntity(node))
+func (p ppt) Save(ctx context.Context, node *entity.Node) apierrors.ApiError {
+	result := p.db.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Create(contracts.MapFromEntity(node))
 	if result.Error != nil {
 		return apierrors.NewInternalServerApiError(result.Error.Error())
 	}
 	return nil
 }
 
-func (p ppt) GetById(_ context.Context, id string) (*entity.Node, apierrors.ApiError) {
-	var node contracts.Node
-	result := p.db.Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(&node, &contracts.Node{ID: id})
+func (p ppt) GetById(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {
+	node := &contracts.Node{ID: id}
+	result := p.db.WithContext(ctx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, apierrors.NewNotFoundApiError("node not found")
 		}
 		return nil, apierrors.NewInternalServerApiError(result.Error.Error())
 	}
-	return contracts.MapToEntity(&node), nil
+	return contracts.MapToEntity(node), nil
 }
 
-func (p ppt) GetTree(_ context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
+func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
 	sql := `
 		WITH RECURSIVE node_tree AS (
 			SELECT id, parent_id, 0 as level
@@ -69,7 +75,7 @@ func (p ppt) GetTree(_ context.Context, rootId string) (*entity.Node, apierrors.
 		)
 		SELECT * FROM node_tree;
 	`
-	rows, err := p.db.Raw(sql, rootId).Rows()
+	rows, err := p.db.WithContext(ctx).Raw(sql, rootId).Rows()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apierrors.NewNotFoundApiError("node not found")
@@ -81,7 +87,7 @@ func (p ppt) GetTree(_ context.Context, rootId string) (*entity.Node, apierrors.
 	var nodes []*contracts.Node
 	for rows.Next() {
 		var node contracts.Node
-		err = p.db.ScanRows(rows, &node)
+		err = p.db.WithContext(ctx).ScanRows(rows, &node)
 		if err != nil {
 			return nil, apierrors.NewInternalServerApiError(err.Error())
 		}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/F-Amaral/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/wireup/middlewares"
+	ginzap "github.com/gin-contrib/zap"
 	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/fx"
@@ -17,7 +19,7 @@ const (
 
 var Module = fx.Options(
 	fx.Provide(NewServer),
-	fx.Invoke(InitServer),
+	fx.Invoke(InitServer, log.NewLogger),
 )
 
 type Server struct {
@@ -25,8 +27,12 @@ type Server struct {
 }
 
 func NewServer(logger log.Logger, tracer *trace.TracerProvider) *Server {
+	engine := gin.New()
+	engine.Use(ginzap.Ginzap(logger.Desugar(), time.RFC3339, true))
+	engine.Use(ginzap.RecoveryWithZap(logger.Desugar(), true))
+	engine.Use(middlewares.LogInContextMiddleware(logger))
 	server := Server{
-		Engine: gin.New(),
+		Engine: engine,
 	}
 	return &server
 }
@@ -51,7 +57,7 @@ func runServer(server *Server) {
 }
 
 func ScheduleShutdown(reason string, cause error) {
-	log.Err(errors.New(fmt.Sprintf("server failed to start, scheduling shutdown in %s for reason %s", defaultShutdownDelay, reason)))
+	log.Error(context.Background()).LogError(errors.New(fmt.Sprintf("server failed to start, scheduling shutdown in %s for reason %s", defaultShutdownDelay, reason)))
 	time.Sleep(defaultShutdownDelay)
 	panic(cause)
 }

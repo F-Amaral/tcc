@@ -22,6 +22,6 @@ func DefinePingEndpoint(server *wireup.Server) {
 func MakePingHandler(w http.ResponseWriter, r *http.Request) {
 	err := web.EncodeJson(w, "pong", http.StatusOK)
 	if err != nil {
-		log.Err(err)
+		log.Error(r.Context()).LogError(err)
 	}
 }

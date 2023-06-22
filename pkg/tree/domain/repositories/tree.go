@@ -11,3 +11,8 @@ type Tree interface {
 	GetById(context.Context, string) (*entity.Node, apierrors.ApiError)
 	GetTree(context.Context, string) (*entity.Node, apierrors.ApiError)
 }
+
+type NestedTree interface {
+	Tree
+	AppendToTree(context.Context, string, *entity.Node) (*entity.Node, apierrors.ApiError)
+}

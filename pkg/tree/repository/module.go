@@ -1,12 +1,12 @@
 package repository
 
 import (
-	"github.com/F-Amaral/tcc/constants"
-	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql"
+	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/nested"
+	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/ppt"
 	"go.uber.org/fx"
 )
 
 var Module = fx.Provide(
-	fx.Annotate(mysql.NewPpt, fx.ResultTags(constants.PPTRepositoryName)),
-	fx.Annotate(mysql.NewNested, fx.ResultTags(constants.NestedRepositoryName)),
+	fx.Annotate(ppt.NewPpt),
+	fx.Annotate(nested.NewNested),
 )

@@ -10,10 +10,10 @@ import (
 )
 
 type nested struct {
-	repository repositories.Tree
+	repository repositories.NestedTree
 }
 
-func NewNested(repository repositories.Tree) services.Tree {
+func NewNested(repository repositories.NestedTree) services.Tree {
 	return &nested{
 		repository: repository,
 	}
@@ -21,8 +21,7 @@ func NewNested(repository repositories.Tree) services.Tree {
 
 func (p nested) Create(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {
 	node := &entity.Node{
-		Id:       id,
-		ParentId: id,
+		Id: id,
 	}
 
 	err := p.repository.Save(ctx, node)
@@ -37,62 +36,44 @@ func (p nested) GetTree(ctx context.Context, nodeId string) (*entity.Node, apier
 }
 
 func (p nested) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {
+	parentNode, err := p.getOrCreate(ctx, parentId)
+	if err != nil {
+		return nil, err
+	}
+
 	childNode, err := p.getOrCreate(ctx, childId)
 	if err != nil {
 		return nil, err
 	}
 
-	if childNode.ParentId != "" && childNode.ParentId != childNode.Id {
+	if childNode.ParentId != "" {
 		if childNode.ParentId != parentId {
 			return nil, apierrors.NewBadRequestError("node already has a parent")
 		}
 		return nil, apierrors.NewBadRequestError("node already has this parent")
 	}
 
-	parentNode, err := p.getOrCreate(ctx, parentId)
+	parentNode, err = p.repository.AppendToTree(ctx, parentNode.Id, childNode)
 	if err != nil {
 		return nil, err
 	}
 
-	childNode.ParentId = parentId
-	saveErr := p.repository.Save(ctx, childNode)
-	if saveErr != nil {
-		return nil, err
-	}
-
-	parentNode.Children = append(parentNode.Children, childNode)
 	return parentNode, nil
 }
 
-func (p nested) RemoveFromParent(ctx context.Context, parentId string, childId string) (*entity.Node, apierrors.ApiError) {
-	parentNode, err := p.repository.GetById(ctx, parentId)
+func (p nested) RemoveFromParent(ctx context.Context, _, nodeId string) (*entity.Node, apierrors.ApiError) {
+	node, err := p.repository.GetById(ctx, nodeId)
 	if err != nil {
 		return nil, err
 	}
 
-	childNode, err := p.repository.GetById(ctx, childId)
-	if err != nil {
-		return nil, err
-	}
-
-	if childNode.ParentId != parentId {
-		return nil, apierrors.NewBadRequestError("node does not have this parent")
-	}
-
-	childNode.ParentId = childNode.Id
-	saveErr := p.repository.Save(ctx, childNode)
+	node.ParentId = ""
+	saveErr := p.repository.Save(ctx, node)
 	if saveErr != nil {
 		return nil, err
 	}
 
-	for i, child := range parentNode.Children {
-		if child.Id == childId {
-			parentNode.Children = append(parentNode.Children[:i], parentNode.Children[i+1:]...)
-			break
-		}
-	}
-
-	return parentNode, nil
+	return node, nil
 }
 
 func (p nested) getOrCreate(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {

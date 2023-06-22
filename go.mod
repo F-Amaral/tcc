@@ -3,6 +3,7 @@ module github.com/F-Amaral/tcc
 go 1.19
 
 require (
+	github.com/gin-contrib/zap v0.1.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
 	go.uber.org/fx v1.19.1
@@ -71,7 +72,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.2 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.11.2 // indirect
 	go.opentelemetry.io/otel/metric v0.34.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.11.2 // indirect
+	go.opentelemetry.io/otel/sdk v1.11.2
 	go.opentelemetry.io/otel/sdk/metric v0.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
