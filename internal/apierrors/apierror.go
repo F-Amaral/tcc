@@ -3,7 +3,7 @@ package apierrors
 import (
 	"context"
 	"fmt"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"net/http"
 )
 
 type ApiError interface {

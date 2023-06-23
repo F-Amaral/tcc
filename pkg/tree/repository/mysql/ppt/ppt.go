@@ -2,6 +2,7 @@ package ppt
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/F-Amaral/tcc/constants"
 	"github.com/F-Amaral/tcc/internal/apierrors"
@@ -9,42 +10,53 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/ppt/contracts"
+	_ "github.com/newrelic/go-agent/v3/integrations/nrmysql"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	logger2 "gorm.io/gorm/logger"
 	"moul.io/zapgorm2"
 )
 
 type ppt struct {
-	db *gorm.DB
+	db     *gorm.DB
+	tracer *newrelic.Application
 }
 
-func NewPpt(config *viper.Viper, logger log.Logger) (repositories.Tree, error) {
+func NewPpt(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (repositories.Tree, error) {
 	logWrap := zapgorm2.New(logger.Desugar())
+	logWrap.LogMode(logger2.Silent)
 	logWrap.SetAsDefault()
-	db, err := gorm.Open(mysql.Open(config.GetString(constants.PPtDbDsnKey)), &gorm.Config{Logger: logWrap})
+	nrDb, err := sql.Open("nrmysql", config.GetString(constants.PPtDbDsnKey))
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: nrDb,
+	}), &gorm.Config{Logger: logWrap})
 	if err != nil {
 		return nil, err
 	}
 
 	err = db.AutoMigrate(&contracts.Node{})
 
-	//err = db.Use(tracing.NewPlugin(tracing.WithDBName("ppt")))
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	if err != nil {
 		return nil, err
 	}
 	return &ppt{
-		db: db,
+		db:     db,
+		tracer: nr,
 	}, nil
 }
 
 func (p ppt) Save(ctx context.Context, node *entity.Node) apierrors.ApiError {
-	result := p.db.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Create(contracts.MapFromEntity(node))
+	trace := p.tracer.StartTransaction("PPT Save")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
+	result := p.db.WithContext(traceCtx).Clauses(clause.OnConflict{UpdateAll: true}).Create(contracts.MapFromEntity(node))
 	if result.Error != nil {
 		return apierrors.NewInternalServerApiError(result.Error.Error())
 	}
@@ -52,8 +64,11 @@ func (p ppt) Save(ctx context.Context, node *entity.Node) apierrors.ApiError {
 }
 
 func (p ppt) GetById(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {
+	trace := p.tracer.StartTransaction("PPT GetById")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
 	node := &contracts.Node{ID: id}
-	result := p.db.WithContext(ctx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
+	result := p.db.WithContext(traceCtx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, apierrors.NewNotFoundApiError("node not found")
@@ -79,7 +94,10 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 		)
 		SELECT * FROM node_tree;
 	`
-	rows, err := p.db.WithContext(ctx).Raw(sql, rootId).Rows()
+	trace := p.tracer.StartTransaction("Ppt GetTree")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
+	rows, err := p.db.WithContext(traceCtx).Raw(sql, rootId).Rows()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apierrors.NewNotFoundApiError("node not found")
@@ -88,10 +106,13 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 	}
 	defer rows.Close()
 
+	buildTrace := p.tracer.StartTransaction("Ppt GetTree Build")
+	buildTraceCtx := newrelic.NewContext(traceCtx, buildTrace)
+	defer buildTrace.End()
 	var nodes []*contracts.Node
 	for rows.Next() {
 		var node contracts.Node
-		err = p.db.WithContext(ctx).ScanRows(rows, &node)
+		err = p.db.WithContext(buildTraceCtx).ScanRows(rows, &node)
 		if err != nil {
 			return nil, apierrors.NewInternalServerApiError(err.Error())
 		}

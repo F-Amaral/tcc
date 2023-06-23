@@ -6,7 +6,7 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"net/http"
 )
 
 type ppt struct {

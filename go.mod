@@ -4,21 +4,35 @@ go 1.19
 
 require (
 	github.com/gin-contrib/zap v0.1.0
+	github.com/gin-gonic/gin v1.9.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
+	github.com/newrelic/go-agent/v3 v3.23.0
+	github.com/newrelic/go-agent/v3/integrations/nrgin v1.2.0
 	go.uber.org/fx v1.19.1
 	go.uber.org/zap v1.24.0
+	moul.io/zapgorm2 v1.3.0
 )
 
 require (
+	github.com/bytedance/sonic v1.8.0 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/gin-gonic/gin v1.8.2 // indirect
+	github.com/google/gops v0.3.27 // indirect
 	github.com/helios/go-sdk/data-utils v1.0.2 // indirect
 	github.com/helios/opentelemetry-go-contrib/instrumentation/net/http/otelhttp v0.1.4 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/kennygrant/sanitize v1.2.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/newrelic/go-agent/v3/integrations/nrmysql v1.2.2 // indirect
 	github.com/ohler55/ojg v1.17.4 // indirect
+	github.com/spf13/cobra v1.6.1 // indirect
+	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/xlab/treeprint v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.36.4 // indirect
+	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9 // indirect
-	moul.io/zapgorm2 v1.3.0 // indirect
+	rsc.io/goversion v1.2.0 // indirect
 )
 
 require (
@@ -88,7 +102,6 @@ require (
 	google.golang.org/grpc v1.55.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.1

@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/F-Amaral/tcc/internal/log"
+	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/internal/wireup/middlewares"
 	ginzap "github.com/gin-contrib/zap"
-	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
-	"go.opentelemetry.io/otel/sdk/trace"
+	"github.com/gin-gonic/gin"
+	"github.com/newrelic/go-agent/v3/integrations/nrgin"
 	"go.uber.org/fx"
 	"time"
 )
@@ -24,15 +25,19 @@ var Module = fx.Options(
 
 type Server struct {
 	Engine *gin.Engine
+	Tracer telemetry.Telemetry
 }
 
-func NewServer(logger log.Logger, tracer *trace.TracerProvider) *Server {
+func NewServer(logger log.Logger, telemetry telemetry.Telemetry) *Server {
 	engine := gin.New()
 	engine.Use(ginzap.Ginzap(logger.Desugar(), time.RFC3339, true))
 	engine.Use(ginzap.RecoveryWithZap(logger.Desugar(), true))
+	engine.Use(nrgin.Middleware(telemetry))
+	engine.Use(middlewares.TracerInContextMiddleware(telemetry))
 	engine.Use(middlewares.LogInContextMiddleware(logger))
 	server := Server{
 		Engine: engine,
+		Tracer: telemetry,
 	}
 	return &server
 }

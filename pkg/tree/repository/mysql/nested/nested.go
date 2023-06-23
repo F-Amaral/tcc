@@ -10,21 +10,33 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/nested/contracts"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	logger2 "gorm.io/gorm/logger"
 	"moul.io/zapgorm2"
 )
 
 type nested struct {
-	db *gorm.DB
+	db     *gorm.DB
+	tracer *newrelic.Application
 }
 
-func NewNested(config *viper.Viper, logger log.Logger) (repositories.NestedTree, error) {
+func NewNested(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (repositories.NestedTree, error) {
 	logWrap := zapgorm2.New(logger.Desugar())
+	logWrap.LogMode(logger2.Silent)
 	logWrap.SetAsDefault()
-	db, err := gorm.Open(mysql.Open(config.GetString(constants.NestedDbDsnKey)), &gorm.Config{Logger: logWrap})
+	nrDb, err := sql.Open("nrmysql", config.GetString(constants.NestedDbDsnKey))
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: nrDb,
+	}), &gorm.Config{Logger: logWrap})
 	if err != nil {
 		return nil, err
 	}
@@ -39,13 +51,17 @@ func NewNested(config *viper.Viper, logger log.Logger) (repositories.NestedTree,
 	//	return nil, err
 	//}
 	return &nested{
-		db: db,
+		db:     db,
+		tracer: nr,
 	}, nil
 }
 
 func (s *nested) Save(ctx context.Context, entityNode *entity.Node) apierrors.ApiError {
+	trace := s.tracer.StartTransaction("Nested Save")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
 	node := contracts.MapFromEntity(entityNode)
-	if _, err := s.save(ctx, s.db.WithContext(ctx), node); err != nil {
+	if _, err := s.save(ctx, s.db.WithContext(traceCtx), node); err != nil {
 		return err
 	}
 
@@ -53,7 +69,10 @@ func (s *nested) Save(ctx context.Context, entityNode *entity.Node) apierrors.Ap
 }
 
 func (s *nested) GetById(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
-	node, err := s.getById(ctx, s.db.WithContext(ctx), nodeId)
+	trace := s.tracer.StartTransaction("Nested GetById")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
+	node, err := s.getById(ctx, s.db.WithContext(traceCtx), nodeId)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +80,11 @@ func (s *nested) GetById(ctx context.Context, nodeId string) (*entity.Node, apie
 }
 
 func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, apierrors.ApiError) {
+	trace := s.tracer.StartTransaction("Nested GetTree")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
 	parent := &contracts.Node{ID: parentId}
-	res := s.db.WithContext(ctx).First(parent)
+	res := s.db.WithContext(traceCtx).First(parent)
 	if res.Error != nil {
 		return nil, s.handleGormError(res.Error)
 	}
@@ -75,11 +97,14 @@ func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, ap
 	}
 	defer rows.Close()
 
+	buildTrace := s.tracer.StartTransaction("Nested Tree Building")
+	buildTraceCtx := newrelic.NewContext(ctx, buildTrace)
+	defer buildTrace.End()
 	nodeParentMap := make(map[string]*contracts.Node)
 	nodeParentMap[parent.ID] = parent
 	for rows.Next() {
 		var node contracts.Node
-		err := s.db.WithContext(ctx).ScanRows(rows, &node)
+		err := s.db.WithContext(buildTraceCtx).ScanRows(rows, &node)
 		if err != nil {
 			return nil, apierrors.NewInternalServerApiError(err.Error())
 		}
@@ -97,18 +122,22 @@ func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, ap
 			return nil, apierrors.NewInternalServerApiError("parent node not found")
 		}
 	}
+
 	return contracts.MapToEntity(parent), nil
 }
 
 func (s *nested) AppendToTree(ctx context.Context, parentId string, entityNode *entity.Node) (*entity.Node, apierrors.ApiError) {
+	trace := s.tracer.StartTransaction("Nested AppendToTree")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
 	if len(entityNode.Children) > 0 {
-		node, err := s.handleMergeTrees(ctx, parentId, entityNode)
+		node, err := s.handleMergeTrees(traceCtx, parentId, entityNode)
 		if err != nil {
 			return nil, err
 		}
 		return contracts.MapToEntity(node), nil
 	}
-	node, err := s.handleEmptyChild(ctx, parentId, entityNode)
+	node, err := s.handleEmptyChild(traceCtx, parentId, entityNode)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +190,7 @@ func (s *nested) handleEmptyChild(ctx context.Context, parentId string, entityNo
 }
 
 func (s *nested) handleMergeTrees(ctx context.Context, parentId string, entityNode *entity.Node) (*contracts.Node, apierrors.ApiError) {
-	tx := s.db.Debug().WithContext(ctx).Begin()
+	tx := s.db.WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()

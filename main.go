@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/F-Amaral/tcc/internal/config"
 	"github.com/F-Amaral/tcc/internal/log"
-	"github.com/F-Amaral/tcc/internal/trace"
+	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/internal/wireup"
 	"github.com/F-Amaral/tcc/pkg/ping"
 	"github.com/F-Amaral/tcc/pkg/tree"
@@ -18,7 +18,7 @@ func main() {
 
 	app := fx.New(
 		config.Module,
-		trace.Module,
+		telemetry.Module,
 		log.Module,
 		wireup.Module,
 		repository.Module,

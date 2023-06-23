@@ -6,8 +6,9 @@ import (
 	"errors"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
 	"github.com/F-Amaral/tcc/pkg/tree/http/ppt/contracts"
-	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"github.com/gin-gonic/gin"
+	"net/http"
+
 	"io"
 	"mime/multipart"
 )

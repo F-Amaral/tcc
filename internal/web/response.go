@@ -2,8 +2,8 @@ package web
 
 import (
 	"encoding/json"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
 	"io"
+	"net/http"
 )
 
 type Headerer interface {

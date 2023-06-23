@@ -6,10 +6,10 @@ import (
 	"errors"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
 	"github.com/F-Amaral/tcc/pkg/tree/http/nested/contracts"
-	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"github.com/gin-gonic/gin"
 	"io"
 	"mime/multipart"
+	"net/http"
 )
 
 func NewNestedHandler(nested services.Tree) *NestedHandler {

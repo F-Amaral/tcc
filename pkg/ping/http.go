@@ -4,9 +4,9 @@ import (
 	"github.com/F-Amaral/tcc/internal/log"
 	"github.com/F-Amaral/tcc/internal/web"
 	"github.com/F-Amaral/tcc/internal/wireup"
-	gin "github.com/helios/go-sdk/proxy-libs/heliosgin"
-	http "github.com/helios/go-sdk/proxy-libs/helioshttp"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
+	"net/http"
 )
 
 var Module = fx.Invoke(DefinePingEndpoint)

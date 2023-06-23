@@ -1,20 +1,38 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/google/uuid"
 	"math/rand"
+	"os"
+	"path"
 	"sort"
-	"strconv"
+)
+
+var (
+	pathPrefixFlag = flag.String("p", "", "Base path")
+	filenameFlag   = flag.String("o", "tree.csv", "Output filename")
+	numNodesFlag   = flag.Int("n", 100, "Number of nodes")
+	avgDepthFlag   = flag.Int("avg-depth", 3, "Average depth")
+	maxDepthFlag   = flag.Int("max-depth", 4, "Maximum depth")
+	probFlag       = flag.Float64("prob", 0.6, "Probability")
 )
 
 func main() {
-	numNodes := 100
-	avgDepth := 3
-	maxDepth := 4
-	prob := 0.6
+	flag.Parse()
 
+	basePath, _ := os.Getwd()
+	if *pathPrefixFlag != "" {
+		basePath = *pathPrefixFlag
+	}
+	numNodes := *numNodesFlag
+	avgDepth := *avgDepthFlag
+	maxDepth := *maxDepthFlag
+	prob := *probFlag
+	filename := *filenameFlag
 	var nodes []entity.Node
 
 	// create root node
@@ -59,14 +77,14 @@ func main() {
 
 	// write nodes to csv file
 	var records [][]string
-	records = append(records, []string{"parent_id", "child_id", "level"})
-	for _, node := range nodes {
-		record := []string{node.ParentId, node.Id, strconv.Itoa(node.Level)}
+	for _, node := range nodes[:len(nodes)-1] {
+		record := []string{fmt.Sprintf("%s/%s", node.ParentId, node.Id)}
 		records = append(records, record)
 	}
 
-	filename := "tree.csv"
-	if err := csv.WriteCSVFile(filename, records); err != nil {
+	fullName := path.Join(basePath, filename)
+	fmt.Println(fullName)
+	if err := csv.WriteCSVFile(fullName, records); err != nil {
 		panic(err)
 	}
 }
