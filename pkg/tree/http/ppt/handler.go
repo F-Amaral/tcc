@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
 	"github.com/F-Amaral/tcc/pkg/tree/http/ppt/contracts"
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,8 @@ type PptHandler struct {
 }
 
 func (handler *PptHandler) GetTree(ctx *gin.Context) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Handler GetTree")
+	defer tx.End()
 	request := contracts.GetTreeRequest{}
 	if err := ctx.BindUri(&request); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
@@ -43,6 +46,8 @@ func (handler *PptHandler) GetTree(ctx *gin.Context) {
 }
 
 func (handler *PptHandler) AddToParent(ctx *gin.Context) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Handler AddToParent")
+	defer tx.End()
 	request := contracts.AddToParentRequest{}
 	if err := ctx.BindUri(&request); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
@@ -64,6 +69,8 @@ func (handler *PptHandler) AddToParent(ctx *gin.Context) {
 }
 
 func (handler *PptHandler) RemoveFromParent(ctx *gin.Context) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Handler RemoveFromParent")
+	defer tx.End()
 	request := contracts.RemoveFromParentRequest{}
 	if err := ctx.BindUri(&request); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
@@ -85,6 +92,8 @@ func (handler *PptHandler) RemoveFromParent(ctx *gin.Context) {
 }
 
 func (handler *PptHandler) UploadCSV(ctx *gin.Context) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Handler UploadCSV")
+	defer tx.End()
 	file, _, err := ctx.Request.FormFile("file")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file"})

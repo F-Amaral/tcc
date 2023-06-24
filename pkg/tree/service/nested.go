@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/F-Amaral/tcc/internal/apierrors"
+	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
@@ -20,6 +21,8 @@ func NewNested(repository repositories.NestedTree) services.Tree {
 }
 
 func (p nested) Create(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Nested Service Create")
+	defer tx.End()
 	node := &entity.Node{
 		Id: id,
 	}
@@ -32,10 +35,14 @@ func (p nested) Create(ctx context.Context, id string) (*entity.Node, apierrors.
 }
 
 func (p nested) GetTree(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Nested Service GetTree")
+	defer tx.End()
 	return p.repository.GetTree(ctx, nodeId)
 }
 
 func (p nested) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Nested Service AddToParent")
+	defer tx.End()
 	parentNode, err := p.getOrCreate(ctx, parentId)
 	if err != nil {
 		return nil, err
@@ -62,6 +69,8 @@ func (p nested) AddToParent(ctx context.Context, parentId, childId string) (*ent
 }
 
 func (p nested) RemoveFromParent(ctx context.Context, _, nodeId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Nested Service RemoveFromParent")
+	defer tx.End()
 	node, err := p.repository.GetById(ctx, nodeId)
 	if err != nil {
 		return nil, err

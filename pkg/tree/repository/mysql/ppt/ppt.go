@@ -41,7 +41,7 @@ func NewPpt(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (r
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&contracts.Node{})
+	err = db.AutoMigrate(&contracts.NodeParent{}, &contracts.Node{})
 
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (p ppt) GetById(ctx context.Context, id string) (*entity.Node, apierrors.Ap
 	trace := p.tracer.StartTransaction("PPT GetById")
 	traceCtx := newrelic.NewContext(ctx, trace)
 	defer trace.End()
-	node := &contracts.Node{ID: id}
+	node := &contracts.NodeParent{ID: id}
 	result := p.db.WithContext(traceCtx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -82,11 +82,10 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 	sql := `
 		WITH RECURSIVE node_tree AS (
 			SELECT id, parent_id, 0 as level
-			FROM nodes
+			FROM nodes as n
+			left join container_parent cp on cp.id = n.id
 			WHERE id = ?
-		  
 			UNION ALL
-		  
 			SELECT n.id, n.parent_id, nt.level + 1 as level
 			FROM nodes n
 			INNER JOIN node_tree nt ON n.parent_id = nt.id
@@ -109,9 +108,9 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 	buildTrace := p.tracer.StartTransaction("Ppt GetTree Build")
 	buildTraceCtx := newrelic.NewContext(traceCtx, buildTrace)
 	defer buildTrace.End()
-	var nodes []*contracts.Node
+	var nodes []*contracts.NodeParent
 	for rows.Next() {
-		var node contracts.Node
+		var node contracts.NodeParent
 		err = p.db.WithContext(buildTraceCtx).ScanRows(rows, &node)
 		if err != nil {
 			return nil, apierrors.NewInternalServerApiError(err.Error())

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/F-Amaral/tcc/internal/apierrors"
+	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/services"
@@ -20,6 +21,8 @@ func NewPpt(repository repositories.Tree) services.Tree {
 }
 
 func (p ppt) Create(ctx context.Context, id string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Service Create")
+	defer tx.End()
 	node := &entity.Node{
 		Id:       id,
 		ParentId: id,
@@ -33,10 +36,14 @@ func (p ppt) Create(ctx context.Context, id string) (*entity.Node, apierrors.Api
 }
 
 func (p ppt) GetTree(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Service GetTree")
+	defer tx.End()
 	return p.repository.GetTree(ctx, nodeId)
 }
 
 func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Service AddToParent")
+	defer tx.End()
 	childNode, err := p.getOrCreate(ctx, childId)
 	if err != nil {
 		return nil, err
@@ -65,6 +72,8 @@ func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity
 }
 
 func (p ppt) RemoveFromParent(ctx context.Context, parentId string, childId string) (*entity.Node, apierrors.ApiError) {
+	tx := telemetry.With(ctx).StartTransaction("Ppt Service RemoveFromParent")
+	defer tx.End()
 	parentNode, err := p.repository.GetById(ctx, parentId)
 	if err != nil {
 		return nil, err
