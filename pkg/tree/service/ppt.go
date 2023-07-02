@@ -36,9 +36,9 @@ func (p ppt) Create(ctx context.Context, id string) (*entity.Node, apierrors.Api
 }
 
 func (p ppt) GetTree(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
-	tx := telemetry.With(ctx).StartTransaction("Ppt Service GetTree")
+	tx := telemetry.With(ctx).StartTransaction("Ppt Service GetTreeRecursive")
 	defer tx.End()
-	return p.repository.GetTree(ctx, nodeId)
+	return p.repository.GetTreeRecursive(ctx, nodeId)
 }
 
 func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {

@@ -10,6 +10,7 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/ppt/contracts"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/newrelic/go-agent/v3/integrations/nrmysql"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
@@ -78,7 +79,7 @@ func (p ppt) GetById(ctx context.Context, id string) (*entity.Node, apierrors.Ap
 	return contracts.MapToEntity(node), nil
 }
 
-func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
+func (p ppt) GetTreeRecursive(ctx context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
 	sql := `
 		WITH RECURSIVE node_tree AS (
 			SELECT id, parent_id, 0 as level
@@ -93,7 +94,7 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 		)
 		SELECT * FROM node_tree;
 	`
-	trace := p.tracer.StartTransaction("Ppt GetTree")
+	trace := p.tracer.StartTransaction("Ppt GetTreeRecursive")
 	traceCtx := newrelic.NewContext(ctx, trace)
 	defer trace.End()
 	rows, err := p.db.WithContext(traceCtx).Raw(sql, rootId).Rows()
@@ -105,7 +106,7 @@ func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierror
 	}
 	defer rows.Close()
 
-	buildTrace := p.tracer.StartTransaction("Ppt GetTree Build")
+	buildTrace := p.tracer.StartTransaction("Ppt GetTreeRecursive Build")
 	buildTraceCtx := newrelic.NewContext(traceCtx, buildTrace)
 	defer buildTrace.End()
 	var nodes []*contracts.NodeParent

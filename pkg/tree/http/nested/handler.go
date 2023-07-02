@@ -22,7 +22,7 @@ type NestedHandler struct {
 }
 
 func (handler *NestedHandler) GetTree(ctx *gin.Context) {
-	tx := telemetry.With(ctx).StartTransaction("Nested Handler GetTree")
+	tx := telemetry.With(ctx).StartTransaction("Nested Handler GetTreeRecursive")
 	defer tx.End()
 	request := contracts.GetTreeRequest{}
 	if err := ctx.BindUri(&request); err != nil {

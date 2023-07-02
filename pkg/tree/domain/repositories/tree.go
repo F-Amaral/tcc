@@ -9,7 +9,7 @@ import (
 type Tree interface {
 	Save(context.Context, *entity.Node) apierrors.ApiError
 	GetById(context.Context, string) (*entity.Node, apierrors.ApiError)
-	GetTree(context.Context, string) (*entity.Node, apierrors.ApiError)
+	GetTreeRecursive(context.Context, string) (*entity.Node, apierrors.ApiError)
 }
 
 type NestedTree interface {

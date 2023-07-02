@@ -35,9 +35,9 @@ func (p nested) Create(ctx context.Context, id string) (*entity.Node, apierrors.
 }
 
 func (p nested) GetTree(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
-	tx := telemetry.With(ctx).StartTransaction("Nested Service GetTree")
+	tx := telemetry.With(ctx).StartTransaction("Nested Service GetTreeRecursive")
 	defer tx.End()
-	return p.repository.GetTree(ctx, nodeId)
+	return p.repository.GetTreeRecursive(ctx, nodeId)
 }
 
 func (p nested) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {

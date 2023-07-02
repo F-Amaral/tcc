@@ -10,6 +10,7 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
 	"github.com/F-Amaral/tcc/pkg/tree/repository/mysql/nested/contracts"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
@@ -79,8 +80,8 @@ func (s *nested) GetById(ctx context.Context, nodeId string) (*entity.Node, apie
 	return contracts.MapToEntity(node), nil
 }
 
-func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, apierrors.ApiError) {
-	trace := s.tracer.StartTransaction("Nested GetTree")
+func (s *nested) GetTreeRecursive(ctx context.Context, parentId string) (*entity.Node, apierrors.ApiError) {
+	trace := s.tracer.StartTransaction("Nested GetTreeRecursive")
 	traceCtx := newrelic.NewContext(ctx, trace)
 	defer trace.End()
 	parent := &contracts.Node{ID: parentId}
