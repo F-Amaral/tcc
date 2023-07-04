@@ -9,6 +9,7 @@ import (
 	"github.com/F-Amaral/tcc/pkg/tree/http/ppt/contracts"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 
 	"io"
 	"mime/multipart"
@@ -36,7 +37,15 @@ func (handler *PptHandler) GetTree(ctx *gin.Context) {
 		return
 	}
 
-	res, err := handler.ppt.GetTree(ctx, request.Id)
+	recursive := true
+	if recursiveQuery := ctx.Query("recursive"); recursiveQuery != "" {
+		r, err := strconv.ParseBool(recursiveQuery)
+		if err == nil {
+			recursive = r
+		}
+	}
+
+	res, err := handler.ppt.GetTree(ctx, request.Id, recursive)
 	if err != nil {
 		ctx.JSON(err.Status(), err)
 		ctx.Writer.WriteHeaderNow()

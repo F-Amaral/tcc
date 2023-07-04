@@ -26,7 +26,7 @@ type ppt struct {
 	tracer *newrelic.Application
 }
 
-func NewPpt(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (repositories.Tree, error) {
+func NewPpt(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (repositories.PPTTree, error) {
 	logWrap := zapgorm2.New(logger.Desugar())
 	logWrap.LogMode(logger2.Silent)
 	logWrap.SetAsDefault()
@@ -42,7 +42,7 @@ func NewPpt(config *viper.Viper, logger log.Logger, nr *newrelic.Application) (r
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&contracts.NodeParent{}, &contracts.Node{})
+	err = db.AutoMigrate(&contracts.Node{}, &contracts.Node{})
 
 	if err != nil {
 		return nil, err
@@ -68,23 +68,19 @@ func (p ppt) GetById(ctx context.Context, id string) (*entity.Node, apierrors.Ap
 	trace := p.tracer.StartTransaction("PPT GetById")
 	traceCtx := newrelic.NewContext(ctx, trace)
 	defer trace.End()
-	node := &contracts.NodeParent{ID: id}
-	result := p.db.WithContext(traceCtx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, apierrors.NewNotFoundApiError("node not found")
-		}
-		return nil, apierrors.NewInternalServerApiError(result.Error.Error())
+	node, err := p.getById(traceCtx, id)
+	if err != nil {
+		return nil, err
 	}
+
 	return contracts.MapToEntity(node), nil
 }
 
 func (p ppt) GetTreeRecursive(ctx context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
 	sql := `
-		WITH RECURSIVE node_tree AS (
+			WITH RECURSIVE node_tree AS (
 			SELECT id, parent_id, 0 as level
-			FROM nodes as n
-			left join container_parent cp on cp.id = n.id
+			FROM nodes
 			WHERE id = ?
 			UNION ALL
 			SELECT n.id, n.parent_id, nt.level + 1 as level
@@ -109,9 +105,9 @@ func (p ppt) GetTreeRecursive(ctx context.Context, rootId string) (*entity.Node,
 	buildTrace := p.tracer.StartTransaction("Ppt GetTreeRecursive Build")
 	buildTraceCtx := newrelic.NewContext(traceCtx, buildTrace)
 	defer buildTrace.End()
-	var nodes []*contracts.NodeParent
+	var nodes []*contracts.Node
 	for rows.Next() {
-		var node contracts.NodeParent
+		var node contracts.Node
 		err = p.db.WithContext(buildTraceCtx).ScanRows(rows, &node)
 		if err != nil {
 			return nil, apierrors.NewInternalServerApiError(err.Error())
@@ -142,4 +138,49 @@ func (p ppt) GetTreeRecursive(ctx context.Context, rootId string) (*entity.Node,
 	}
 
 	return root, nil
+}
+
+func (p ppt) GetTree(ctx context.Context, rootId string) (*entity.Node, apierrors.ApiError) {
+	trace := p.tracer.StartTransaction("Ppt GetTree")
+	traceCtx := newrelic.NewContext(ctx, trace)
+	defer trace.End()
+	rootNode, err := p.getById(traceCtx, rootId)
+	if err != nil {
+		return nil, err
+	}
+	visited := make(map[string]bool)
+	err = p.loadChildren(traceCtx, rootNode, visited)
+	if err != nil {
+		return nil, err
+	}
+	return contracts.MapToEntity(rootNode), nil
+}
+
+func (p ppt) getById(ctx context.Context, id string) (*contracts.Node, apierrors.ApiError) {
+	node := &contracts.Node{ID: id}
+	result := p.db.WithContext(ctx).Clauses().Preload("Children", "parent_id = ? and id <> ?", id, id).First(node)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, apierrors.NewNotFoundApiError("node not found")
+		}
+		return nil, apierrors.NewInternalServerApiError(result.Error.Error())
+	}
+	return node, nil
+}
+
+func (p ppt) loadChildren(ctx context.Context, node *contracts.Node, visited map[string]bool) apierrors.ApiError {
+	if visited[node.ID] {
+		return nil
+	}
+	visited[node.ID] = true
+	if err := p.db.WithContext(ctx).Model(node).Association("Children").Find(&node.Children); err != nil {
+		return apierrors.NewInternalServerApiError(err.Error())
+	}
+	for _, child := range node.Children {
+		err := p.loadChildren(ctx, child, visited)
+		if err != nil {
+			return apierrors.NewInternalServerApiError(err.Error())
+		}
+	}
+	return nil
 }

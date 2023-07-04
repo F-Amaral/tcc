@@ -11,21 +11,13 @@ type Node struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Name      string         `gorm:"index"`
-}
-
-type NodeParent struct {
-	ID        string `gorm:"primaryKey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
 	ParentId  *string        `gorm:"index"`
 	Level     int
-	Children  []*NodeParent `gorm:"foreignKey:ParentId;constraint:OnDelete:SET NULL"`
+	Children  []*Node `gorm:"foreignKey:ParentId;constraint:OnDelete:SET NULL"`
 }
 
-func MapFromEntity(node *entity.Node) *NodeParent {
-	return &NodeParent{
+func MapFromEntity(node *entity.Node) *Node {
+	return &Node{
 		ID:        node.Id,
 		CreatedAt: time.Now(),
 		ParentId:  &node.ParentId,
@@ -33,7 +25,7 @@ func MapFromEntity(node *entity.Node) *NodeParent {
 	}
 }
 
-func MapToEntity(node *NodeParent) *entity.Node {
+func MapToEntity(node *Node) *entity.Node {
 	parentId := *node.ParentId
 	if *node.ParentId == node.ID {
 		parentId = ""
@@ -46,7 +38,7 @@ func MapToEntity(node *NodeParent) *entity.Node {
 	}
 }
 
-func MapToEntityList(nodes []*NodeParent) []*entity.Node {
+func MapToEntityList(nodes []*Node) []*entity.Node {
 	var result []*entity.Node
 	for _, node := range nodes {
 		result = append(result, MapToEntity(node))

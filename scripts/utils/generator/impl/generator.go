@@ -1,7 +1,6 @@
-package main
+package generator
 
 import (
-	"flag"
 	"fmt"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
@@ -9,30 +8,36 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 )
 
-var (
-	pathPrefixFlag = flag.String("p", "", "Base path")
-	filenameFlag   = flag.String("o", "tree.csv", "Output filename")
-	numNodesFlag   = flag.Int("n", 100, "Number of nodes")
-	avgDepthFlag   = flag.Int("avg-depth", 3, "Average depth")
-	maxDepthFlag   = flag.Int("max-depth", 4, "Maximum depth")
-	probFlag       = flag.Float64("prob", 0.6, "Probability")
-)
-
-func main() {
-	flag.Parse()
-
-	basePath, _ := os.Getwd()
-	if *pathPrefixFlag != "" {
-		basePath = *pathPrefixFlag
+func SaveNodesToFile(nodes []entity.Node, basePath, filename string) {
+	if !filepath.IsAbs(basePath) {
+		wd, _ := os.Getwd()
+		basePath = filepath.Join(wd, filepath.Clean(basePath))
 	}
-	numNodes := *numNodesFlag
-	avgDepth := *avgDepthFlag
-	maxDepth := *maxDepthFlag
-	prob := *probFlag
-	filename := *filenameFlag
+
+	err := os.MkdirAll(basePath, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+
+	// write nodes to csv file
+	var records [][]string
+	for _, node := range nodes[:len(nodes)-1] {
+		record := []string{fmt.Sprintf("%s/%s", node.ParentId, node.Id)}
+		records = append(records, record)
+	}
+
+	fullName := path.Join(basePath, filename)
+	fmt.Println(fullName)
+	if err := csv.WriteCSVFile(fullName, records); err != nil {
+		panic(err)
+	}
+}
+
+func Generate(numNodes, avgDepth, maxDepth int, prob float64) []entity.Node {
 	var nodes []entity.Node
 
 	// create root node
@@ -75,18 +80,7 @@ func main() {
 		return nodes[i].Level > nodes[j].Level
 	})
 
-	// write nodes to csv file
-	var records [][]string
-	for _, node := range nodes[:len(nodes)-1] {
-		record := []string{fmt.Sprintf("%s/%s", node.ParentId, node.Id)}
-		records = append(records, record)
-	}
-
-	fullName := path.Join(basePath, filename)
-	fmt.Println(fullName)
-	if err := csv.WriteCSVFile(fullName, records); err != nil {
-		panic(err)
-	}
+	return nodes
 }
 
 func createChildren(parentId uuid.UUID, depth, avgDepth, maxDepth int, prob float64, nodes []entity.Node) []entity.Node {

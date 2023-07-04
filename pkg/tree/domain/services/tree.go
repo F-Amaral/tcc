@@ -8,7 +8,7 @@ import (
 
 type Tree interface {
 	Create(context.Context, string) (*entity.Node, apierrors.ApiError)
-	GetTree(context.Context, string) (*entity.Node, apierrors.ApiError)
+	GetTree(context.Context, string, bool) (*entity.Node, apierrors.ApiError)
 	AddToParent(context.Context, string, string) (*entity.Node, apierrors.ApiError)
 	RemoveFromParent(context.Context, string, string) (*entity.Node, apierrors.ApiError)
 }

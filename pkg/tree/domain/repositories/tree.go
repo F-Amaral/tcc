@@ -9,6 +9,11 @@ import (
 type Tree interface {
 	Save(context.Context, *entity.Node) apierrors.ApiError
 	GetById(context.Context, string) (*entity.Node, apierrors.ApiError)
+	GetTree(context.Context, string) (*entity.Node, apierrors.ApiError)
+}
+
+type PPTTree interface {
+	Tree
 	GetTreeRecursive(context.Context, string) (*entity.Node, apierrors.ApiError)
 }
 

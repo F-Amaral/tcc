@@ -80,7 +80,7 @@ func (s *nested) GetById(ctx context.Context, nodeId string) (*entity.Node, apie
 	return contracts.MapToEntity(node), nil
 }
 
-func (s *nested) GetTreeRecursive(ctx context.Context, parentId string) (*entity.Node, apierrors.ApiError) {
+func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, apierrors.ApiError) {
 	trace := s.tracer.StartTransaction("Nested GetTreeRecursive")
 	traceCtx := newrelic.NewContext(ctx, trace)
 	defer trace.End()

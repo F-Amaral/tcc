@@ -27,7 +27,9 @@ func With(ctx context.Context) wrapper {
 }
 
 func (w wrapper) StartTransaction(name string, options ...newrelic.TraceOption) *newrelic.Transaction {
-	return w.tracer.StartTransaction(name, options...)
+	tx := w.tracer.StartTransaction(name, options...)
+
+	return tx
 }
 
 func FromContext(ctx context.Context) Telemetry {

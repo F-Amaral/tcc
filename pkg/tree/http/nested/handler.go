@@ -35,7 +35,7 @@ func (handler *NestedHandler) GetTree(ctx *gin.Context) {
 		return
 	}
 
-	res, err := handler.nested.GetTree(ctx, request.Id)
+	res, err := handler.nested.GetTree(ctx, request.Id, false)
 	if err != nil {
 		ctx.JSON(err.Status(), err)
 		ctx.Writer.WriteHeaderNow()

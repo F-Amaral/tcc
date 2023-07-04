@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/F-Amaral/tcc/internal/apierrors"
+	"github.com/F-Amaral/tcc/internal/log"
 	"github.com/F-Amaral/tcc/internal/telemetry"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/repositories"
@@ -11,10 +12,10 @@ import (
 )
 
 type ppt struct {
-	repository repositories.Tree
+	repository repositories.PPTTree
 }
 
-func NewPpt(repository repositories.Tree) services.Tree {
+func NewPpt(repository repositories.PPTTree) services.Tree {
 	return &ppt{
 		repository: repository,
 	}
@@ -30,15 +31,29 @@ func (p ppt) Create(ctx context.Context, id string) (*entity.Node, apierrors.Api
 
 	err := p.repository.Save(ctx, node)
 	if err != nil {
+		log.WrapTransaction(tx).Error(err)
 		return nil, err
 	}
 	return node, nil
 }
 
-func (p ppt) GetTree(ctx context.Context, nodeId string) (*entity.Node, apierrors.ApiError) {
+func (p ppt) GetTree(ctx context.Context, nodeId string, recursive bool) (*entity.Node, apierrors.ApiError) {
 	tx := telemetry.With(ctx).StartTransaction("Ppt Service GetTreeRecursive")
 	defer tx.End()
-	return p.repository.GetTreeRecursive(ctx, nodeId)
+	if recursive {
+		node, err := p.repository.GetTreeRecursive(ctx, nodeId)
+		if err != nil {
+			log.WrapTransaction(tx).Error(err)
+			return nil, err
+		}
+		return node, nil
+	}
+	node, err := p.repository.GetTree(ctx, nodeId)
+	if err != nil {
+		log.WrapTransaction(tx).Error(err)
+		return nil, err
+	}
+	return node, nil
 }
 
 func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity.Node, apierrors.ApiError) {
@@ -46,6 +61,7 @@ func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity
 	defer tx.End()
 	childNode, err := p.getOrCreate(ctx, childId)
 	if err != nil {
+		log.WrapTransaction(tx).Error(err)
 		return nil, err
 	}
 
@@ -64,6 +80,7 @@ func (p ppt) AddToParent(ctx context.Context, parentId, childId string) (*entity
 	childNode.ParentId = parentId
 	saveErr := p.repository.Save(ctx, childNode)
 	if saveErr != nil {
+		log.WrapTransaction(tx).Error(err)
 		return nil, err
 	}
 
