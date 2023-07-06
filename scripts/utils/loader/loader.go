@@ -8,47 +8,57 @@ import (
 	vegeta "github.com/F-Amaral/tcc/scripts/utils/vegeta/impl"
 )
 
-var (
-	startNumNodesFlag = flag.Int("n-start", 10, "Start number of nodes")
-	maxNumNodesFlag   = flag.Int("n-max", 10, "Max number of nodes")
-	stepNumNodesFlag  = flag.Int("n-step", 10, "Step number of nodes")
-	startDepthFlag    = flag.Int("depth-start", 10, "Maximum depth")
-	stepDepthFlag     = flag.Int("step-depth", 1, "Step depth")
-	outputFolderFlag  = flag.String("output-folder", "./output", "Output folder")
-	formatFlag        = flag.String("format", "vegeta", "Output format: path, csv")
-)
-
-func main() {
-	flag.Parse()
-	startNumNodes := *startNumNodesFlag
-	maxNumNodes := *maxNumNodesFlag
-	stepNumNodes := *stepNumNodesFlag
-	startDepth := *startDepthFlag
-	stepDetph := *stepDepthFlag
-	outputFolder := *outputFolderFlag
-	format := *formatFlag
-	Load(startNumNodes, maxNumNodes, stepNumNodes, startDepth, stepDetph, outputFolder, format)
+type Flags struct {
+	StartNumNodes int
+	MaxNumNodes   int
+	StepNumNodes  int
+	StartDepth    int
+	StepDepth     int
+	StartWidth    int
+	StepWidth     int
+	OutputFolder  string
+	Format        string
+	DepthPriority bool
 }
 
-func Load(startNumNodes int, maxNumNodes int, stepNumNodes int, startDepth int, stepDepth int, outputFolder string, format string) {
-	numIterations := (maxNumNodes - startNumNodes) / stepNumNodes
+func parseFlags() *Flags {
+	flags := &Flags{}
+	flag.IntVar(&flags.StartNumNodes, "n-start", 10, "Start number of nodes")
+	flag.IntVar(&flags.MaxNumNodes, "n-max", 10, "Max number of nodes")
+	flag.IntVar(&flags.StepNumNodes, "n-step", 10, "Step number of nodes")
+	flag.IntVar(&flags.StartDepth, "depth-start", 3, "Maximum depth")
+	flag.IntVar(&flags.StepDepth, "step-depth", 1, "Step depth")
+	flag.IntVar(&flags.StartWidth, "width-start", 3, "Maximum Width")
+	flag.IntVar(&flags.StepWidth, "step-width", 1, "Step Width")
+	flag.StringVar(&flags.OutputFolder, "output-folder", "./output", "Output folder")
+	flag.StringVar(&flags.Format, "format", "vegeta", "Output format: path, csv")
+	flag.BoolVar(&flags.DepthPriority, "depth-priority", true, "Depth priority")
+	flag.Parse()
+	return flags
+}
+
+func main() {
+	flags := parseFlags()
+	Load(flags)
+}
+
+func Load(flags *Flags) {
+	numIterations := (flags.MaxNumNodes - flags.StartNumNodes) / flags.StepNumNodes
 	for i := 0; i <= numIterations; i++ {
-		numNodes := startNumNodes + (i * stepNumNodes)
-		depth := startDepth + (i * stepDepth)
-		gen := generator.NewNodeGenerator(numNodes, depth)
+		numNodes := flags.StartNumNodes + (i * flags.StepNumNodes)
+		depth := flags.StartDepth + (i * flags.StepDepth)
+		gen := generator.NewNodeGenerator(numNodes, depth, flags.StartWidth, flags.DepthPriority)
 		nodes := gen.GenerateRoot()
 		db, _ := json.Marshal(nodes)
 		fmt.Println(string(db))
-		datasetName := fmt.Sprintf("dataset_%d_%s.csv", numNodes, format)
-		generator.SaveNodesToFile(nodes, outputFolder, datasetName, format)
+		datasetName := fmt.Sprintf("dataset_%d_%s.csv", numNodes, flags.Format)
+		generator.SaveNodesToFile(nodes, flags.OutputFolder, datasetName, flags.Format)
 	}
 
-	switch format {
+	switch flags.Format {
 	case "vegeta":
-		vegeta.Run(outputFolder, "", "input", "all", "http://test.pi.hole:8080", true)
-		break
+		vegeta.Run(flags.OutputFolder, "", "input", "all", "http://test.pi.hole:8080", true)
 	default:
 		print("Creating dataset without execution")
-		break
 	}
 }

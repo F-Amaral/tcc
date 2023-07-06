@@ -11,14 +11,18 @@ import (
 )
 
 type NodeGenerator struct {
-	depth    int
-	numNodes int
+	depth         int
+	width         int
+	numNodes      int
+	depthPriority bool
 }
 
-func NewNodeGenerator(numNodes, depth int) *NodeGenerator {
+func NewNodeGenerator(numNodes, depth, width int, depthPriority bool) *NodeGenerator {
 	return &NodeGenerator{
-		numNodes: numNodes,
-		depth:    depth,
+		numNodes:      numNodes,
+		depth:         depth,
+		width:         width,
+		depthPriority: depthPriority,
 	}
 }
 
@@ -26,27 +30,38 @@ func (ng *NodeGenerator) GenerateRoot() entity.Node {
 	rootId := uuid.New()
 	root := &entity.Node{Id: rootId.String(), Level: 0, Children: []*entity.Node{}}
 	ng.numNodes--
-	ng.Generate(root, 0)
+	ng.Generate(root, 1)
 	return *root
 }
 
-func (ng *NodeGenerator) Generate(parent *entity.Node, depth int) {
-	if depth == ng.depth || ng.numNodes == 0 {
+func (ng *NodeGenerator) Generate(parent *entity.Node, currentDepth int) {
+	if ng.numNodes <= 0 {
 		return
 	}
 
-	for i := 0; i < ng.depth && ng.numNodes > 0; i++ {
-		ng.numNodes--
-		childId := uuid.New()
-		child := &entity.Node{
-			Id:       childId.String(),
-			ParentId: parent.Id,
-			Level:    depth + 1,
-			Children: []*entity.Node{},
+	if currentDepth < ng.depth {
+		for i := 0; i < ng.width && ng.numNodes > 0; i++ {
+			ng.GenerateChild(parent, currentDepth)
 		}
-		parent.Children = append(parent.Children, child)
-		ng.Generate(child, depth+1)
 	}
+}
+
+func (ng *NodeGenerator) GenerateChild(parent *entity.Node, currentDepth int) {
+	if ng.numNodes <= 0 {
+		return
+	}
+
+	childId := uuid.New()
+	child := &entity.Node{
+		Id:       childId.String(),
+		ParentId: parent.Id,
+		Level:    currentDepth,
+		Children: []*entity.Node{},
+	}
+	parent.Children = append(parent.Children, child)
+	ng.numNodes--
+
+	ng.Generate(child, currentDepth+1)
 }
 
 func PostOrderTraversal(root *entity.Node) []entity.Node {

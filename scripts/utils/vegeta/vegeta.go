@@ -10,7 +10,7 @@ var (
 	csvFolderFlag    = flag.String("folder", "", "Path to csv file")
 	outFileFlag      = flag.String("output", "input", "Path to output file")
 	modeFlag         = flag.String("mode", "nested", "Algorithm to test: ppt, recursive (ppt) , nested, all")
-	targetsFlag      = flag.String("targets", "http://localhost:8080", "Target URL")
+	targetsFlag      = flag.String("targets", "http://test.pi.hole:8080", "Target URL")
 	executionFlag    = flag.Bool("exec", false, "Execution mode: vegeta, use with -input and -mode all ")
 )
 

@@ -149,11 +149,14 @@ func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string)
 	modeTargets := make(map[enums.Mode][]Target)
 	for i, endpoint := range inputData {
 		for _, mode := range mode.Expand() {
-			target := buildTarget(mode, "POST", targetStr, endpoint[0])
-			if i == len(inputData)-1 {
-				target = buildTarget(mode, "GET", targetStr, endpoint[0])
+			if !mode.Is(enums.Recursive) {
+				target := buildTarget(mode, "POST", targetStr, endpoint[0])
+				modeTargets[mode] = append(modeTargets[mode], target)
 			}
-			modeTargets[mode] = append(modeTargets[mode], target)
+			if i == len(inputData)-1 {
+				getEndpoint := buildTarget(mode, "GET", targetStr, endpoint[0])
+				modeTargets[mode] = append(modeTargets[mode], getEndpoint)
+			}
 		}
 	}
 	return modeTargets

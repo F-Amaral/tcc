@@ -3,30 +3,35 @@ package main
 import (
 	"flag"
 	generator "github.com/F-Amaral/tcc/scripts/utils/generator/impl"
-	"os"
 )
 
-var (
-	pathPrefixFlag = flag.String("output-path", "", "Base path")
-	filenameFlag   = flag.String("output-file", "tree.csv", "Output filename")
-	numNodesFlag   = flag.Int("nodes", 10, "Number of nodes")
-	depthFlag      = flag.Int("depth", 3, "Tree depth")
-	formatFlag     = flag.String("format", "csv", "Output format: csv, vegeta")
-)
+type Flags struct {
+	PathPrefix    string
+	Filename      string
+	NumNodes      int
+	Depth         int
+	Width         int
+	Format        string
+	DepthPriority bool
+}
+
+func parseFlags() *Flags {
+	flags := &Flags{}
+	flag.StringVar(&flags.PathPrefix, "output-path", "", "Base path")
+	flag.StringVar(&flags.Filename, "output-file", "tree.csv", "Output filename")
+	flag.IntVar(&flags.NumNodes, "nodes", 10, "Number of nodes")
+	flag.IntVar(&flags.Depth, "depth", 3, "Tree depth")
+	flag.IntVar(&flags.Width, "width", 3, "Tree width")
+	flag.StringVar(&flags.Format, "format", "csv", "Output format: csv, vegeta")
+	flag.BoolVar(&flags.DepthPriority, "depth-priority", true, "Depth priority")
+	flag.Parse()
+	return flags
+}
 
 func main() {
-	flag.Parse()
+	flags := parseFlags()
 
-	basePath, _ := os.Getwd()
-	if *pathPrefixFlag != "" {
-		basePath = *pathPrefixFlag
-	}
-	numNodes := *numNodesFlag
-	depth := *depthFlag
-	filename := *filenameFlag
-	format := *formatFlag
-
-	gen := generator.NewNodeGenerator(numNodes, depth)
+	gen := generator.NewNodeGenerator(flags.NumNodes, flags.Depth, flags.Width, flags.DepthPriority)
 	nodes := gen.GenerateRoot()
-	generator.SaveNodesToFile(nodes, basePath, filename, format)
+	generator.SaveNodesToFile(nodes, flags.PathPrefix, flags.Filename, flags.Format)
 }
