@@ -7,12 +7,11 @@ import (
 )
 
 var (
-	pathPrefixFlag = flag.String("p", "", "Base path")
-	filenameFlag   = flag.String("o", "tree.csv", "Output filename")
-	numNodesFlag   = flag.Int("n", 100, "Number of nodes")
-	avgDepthFlag   = flag.Int("avg-depth", 3, "Average depth")
-	maxDepthFlag   = flag.Int("max-depth", 4, "Maximum depth")
-	probFlag       = flag.Float64("prob", 0.6, "Probability")
+	pathPrefixFlag = flag.String("output-path", "", "Base path")
+	filenameFlag   = flag.String("output-file", "tree.csv", "Output filename")
+	numNodesFlag   = flag.Int("nodes", 10, "Number of nodes")
+	depthFlag      = flag.Int("depth", 3, "Tree depth")
+	formatFlag     = flag.String("format", "csv", "Output format: csv, vegeta")
 )
 
 func main() {
@@ -23,10 +22,11 @@ func main() {
 		basePath = *pathPrefixFlag
 	}
 	numNodes := *numNodesFlag
-	avgDepth := *avgDepthFlag
-	maxDepth := *maxDepthFlag
-	prob := *probFlag
+	depth := *depthFlag
 	filename := *filenameFlag
-	nodes := generator.Generate(numNodes, avgDepth, maxDepth, prob)
-	generator.SaveNodesToFile(nodes, basePath, filename)
+	format := *formatFlag
+
+	gen := generator.NewNodeGenerator(numNodes, depth)
+	nodes := gen.GenerateRoot()
+	generator.SaveNodesToFile(nodes, basePath, filename, format)
 }

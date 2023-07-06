@@ -3,11 +3,12 @@ package csv
 import (
 	"encoding/csv"
 	"os"
+	"path/filepath"
 )
 
 func WriteCSVFile(filename string, records [][]string) error {
 	// Create new file
-	file, err := os.Create(filename)
+	file, err := os.Create(ParsePath(filename))
 	if err != nil {
 		return err
 	}
@@ -29,7 +30,7 @@ func WriteCSVFile(filename string, records [][]string) error {
 
 func ReadFromCSV(filename string) ([][]string, error) {
 	// Open CSV file for reading
-	file, err := os.Open(filename)
+	file, err := os.Open(ParsePath(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -43,4 +44,14 @@ func ReadFromCSV(filename string) ([][]string, error) {
 	}
 
 	return records, nil
+}
+
+func ParsePath(filename string) string {
+	filename = filepath.Clean(filename)
+	if filepath.IsAbs(filename) {
+		return filename
+	}
+
+	filename, _ = filepath.Abs(filename)
+	return filename
 }

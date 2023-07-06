@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	csvInputPathFlag = flag.String("file", "./data.csv", "Path to csv file")
+	csvInputPathFlag = flag.String("file", "./tree.csv", "Path to csv file")
 	csvFolderFlag    = flag.String("folder", "", "Path to csv file")
 	outFileFlag      = flag.String("output", "input", "Path to output file")
 	modeFlag         = flag.String("mode", "nested", "Algorithm to test: ppt, recursive (ppt) , nested, all")

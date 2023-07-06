@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	generator "github.com/F-Amaral/tcc/scripts/utils/generator/impl"
@@ -9,13 +10,12 @@ import (
 
 var (
 	startNumNodesFlag = flag.Int("n-start", 10, "Start number of nodes")
-	maxNumNodesFlag   = flag.Int("n-max", 100, "Max number of nodes")
+	maxNumNodesFlag   = flag.Int("n-max", 10, "Max number of nodes")
 	stepNumNodesFlag  = flag.Int("n-step", 10, "Step number of nodes")
-	avgDepthFlag      = flag.Int("avg-depth", 3, "Average depth")
-	avgDepthIncFlag   = flag.Int("avg-depth-inc", 1, "Average depth increment")
-	maxDepthFlag      = flag.Int("max-depth", 10, "Maximum depth")
-	probFlag          = flag.Float64("prob", 1, "Probability of child node creation")
+	startDepthFlag    = flag.Int("depth-start", 10, "Maximum depth")
+	stepDepthFlag     = flag.Int("step-depth", 1, "Step depth")
 	outputFolderFlag  = flag.String("output-folder", "./output", "Output folder")
+	formatFlag        = flag.String("format", "vegeta", "Output format: path, csv")
 )
 
 func main() {
@@ -23,23 +23,32 @@ func main() {
 	startNumNodes := *startNumNodesFlag
 	maxNumNodes := *maxNumNodesFlag
 	stepNumNodes := *stepNumNodesFlag
-	avgDepth := *avgDepthFlag
-	avgDepthInc := *avgDepthIncFlag
-	maxDepth := *maxDepthFlag
-	prob := *probFlag
+	startDepth := *startDepthFlag
+	stepDetph := *stepDepthFlag
 	outputFolder := *outputFolderFlag
-	Load(startNumNodes, maxNumNodes, stepNumNodes, avgDepth, avgDepthInc, maxDepth, prob, outputFolder)
+	format := *formatFlag
+	Load(startNumNodes, maxNumNodes, stepNumNodes, startDepth, stepDetph, outputFolder, format)
 }
 
-func Load(startNumNodes, maxNumNodes, stepNumNodes, avgDepth, avgDepthInc, maxDepth int, prob float64, outputFolder string) {
+func Load(startNumNodes int, maxNumNodes int, stepNumNodes int, startDepth int, stepDepth int, outputFolder string, format string) {
 	numIterations := (maxNumNodes - startNumNodes) / stepNumNodes
-	for i := 0; i < numIterations; i++ {
+	for i := 0; i <= numIterations; i++ {
 		numNodes := startNumNodes + (i * stepNumNodes)
-		avgDepth += i * avgDepthInc
-		nodes := generator.Generate(numNodes, avgDepth, maxDepth, prob)
-		datasetName := fmt.Sprintf("dataset_%d_%d_%d.csv", numNodes, avgDepth, maxDepth)
-		generator.SaveNodesToFile(nodes, outputFolder, datasetName)
+		depth := startDepth + (i * stepDepth)
+		gen := generator.NewNodeGenerator(numNodes, depth)
+		nodes := gen.GenerateRoot()
+		db, _ := json.Marshal(nodes)
+		fmt.Println(string(db))
+		datasetName := fmt.Sprintf("dataset_%d_%s.csv", numNodes, format)
+		generator.SaveNodesToFile(nodes, outputFolder, datasetName, format)
 	}
 
-	vegeta.Run(outputFolder, "", "input", "all", "http://localhost:8080", true)
+	switch format {
+	case "vegeta":
+		vegeta.Run(outputFolder, "", "input", "all", "http://test.pi.hole:8080", true)
+		break
+	default:
+		print("Creating dataset without execution")
+		break
+	}
 }
