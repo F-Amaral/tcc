@@ -15,7 +15,7 @@ const (
 	All       Mode = "all"
 
 	recursiveTemplate string = "%s/ppt/%s"
-	pptTemplate       string = "%s/ppt/%s=?recursive=false"
+	pptTemplate       string = "%s/ppt/%s?recursive=false"
 	nestedTemplate    string = "%s/nested/%s"
 )
 
@@ -54,10 +54,9 @@ func (m Mode) Expand() []Mode {
 
 func modesMap() map[Mode][]Mode {
 	return map[Mode][]Mode{
-		"ppt":       []Mode{PPT},
-		"nested":    []Mode{Nested},
-		"recursive": []Mode{Recursive},
-		"all":       []Mode{PPT, Nested, Recursive},
+		"ppt":    []Mode{PPT, Recursive},
+		"nested": []Mode{Nested},
+		"all":    []Mode{PPT, Nested, Recursive},
 	}
 }
 
