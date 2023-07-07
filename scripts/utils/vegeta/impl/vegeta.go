@@ -132,10 +132,11 @@ func buildFileName(fileName string, mode *enums.Mode) string {
 	return fmt.Sprintf(outFormat, fileName, mode.String())
 }
 
-func buildTarget(mode enums.Mode, method, targets, path string) Target {
-	url := fmt.Sprintf(mode.Template(), targets, path)
+func buildTarget(mode enums.Mode, method, targets, parentId, nodeId string) Target {
+	addPath := fmt.Sprintf("%s/%s", parentId, nodeId)
+
+	url := fmt.Sprintf(mode.Template(), targets, addPath)
 	if method == "GET" {
-		parentId := strings.Split(path, "/")[0]
 		url = fmt.Sprintf(mode.Template(), targets, parentId)
 	}
 
@@ -147,14 +148,14 @@ func buildTarget(mode enums.Mode, method, targets, path string) Target {
 
 func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string) map[enums.Mode][]Target {
 	modeTargets := make(map[enums.Mode][]Target)
-	for i, endpoint := range inputData {
+	for i, endpoint := range inputData[1:] {
 		for _, mode := range mode.Expand() {
 			if !mode.Is(enums.Recursive) {
-				target := buildTarget(mode, "POST", targetStr, endpoint[0])
+				target := buildTarget(mode, "POST", targetStr, endpoint[0], endpoint[1])
 				modeTargets[mode] = append(modeTargets[mode], target)
 			}
 			if i == len(inputData)-1 {
-				getEndpoint := buildTarget(mode, "GET", targetStr, endpoint[0])
+				getEndpoint := buildTarget(mode, "GET", targetStr, endpoint[0], endpoint[1])
 				modeTargets[mode] = append(modeTargets[mode], getEndpoint)
 			}
 		}

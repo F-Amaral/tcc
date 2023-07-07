@@ -11,18 +11,16 @@ import (
 )
 
 type NodeGenerator struct {
-	depth         int
-	width         int
-	numNodes      int
-	depthPriority bool
+	depth    int
+	width    int
+	numNodes int
 }
 
-func NewNodeGenerator(numNodes, depth, width int, depthPriority bool) *NodeGenerator {
+func NewNodeGenerator(numNodes, depth, width int) *NodeGenerator {
 	return &NodeGenerator{
-		numNodes:      numNodes,
-		depth:         depth,
-		width:         width,
-		depthPriority: depthPriority,
+		numNodes: numNodes,
+		depth:    depth,
+		width:    width,
 	}
 }
 

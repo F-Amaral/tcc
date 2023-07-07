@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/F-Amaral/tcc/scripts/utils/parser"
@@ -8,8 +9,21 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
+type Flags struct {
+	fileName string
+}
+
+func parseFlags() Flags {
+	var flags Flags
+	flag.StringVar(&flags.fileName, "file", "/Users/famaral/go/src/github.com/f-amaral/tcc/scripts/utils/generator/tree.csv", "CSV file to parse")
+	flag.Parse()
+	return flags
+}
+
 func main() {
-	csvData, err := csv.ReadFromCSV("tree.csv")
+	flags := parseFlags()
+
+	csvData, err := csv.ReadFromCSV(flags.fileName)
 	if err != nil {
 		panic(err)
 	}

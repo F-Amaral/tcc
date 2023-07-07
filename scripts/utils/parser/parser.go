@@ -17,8 +17,8 @@ func ParseData(records [][]string) ([]entity.Node, error) {
 		}
 
 		node := entity.Node{
-			Id:       record[0],
-			ParentId: record[1],
+			ParentId: record[0],
+			Id:       record[1],
 		}
 
 		nodesPtr = append(nodesPtr, &node)

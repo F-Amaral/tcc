@@ -19,7 +19,7 @@ func parseFlags() *Flags {
 	flags := &Flags{}
 	flag.StringVar(&flags.PathPrefix, "output-path", "", "Base path")
 	flag.StringVar(&flags.Filename, "output-file", "tree.csv", "Output filename")
-	flag.IntVar(&flags.NumNodes, "nodes", 10, "Number of nodes")
+	flag.IntVar(&flags.NumNodes, "nodes", 20, "Number of nodes")
 	flag.IntVar(&flags.Depth, "depth", 3, "Tree depth")
 	flag.IntVar(&flags.Width, "width", 3, "Tree width")
 	flag.StringVar(&flags.Format, "format", "csv", "Output format: csv, vegeta")
@@ -31,7 +31,7 @@ func parseFlags() *Flags {
 func main() {
 	flags := parseFlags()
 
-	gen := generator.NewNodeGenerator(flags.NumNodes, flags.Depth, flags.Width, flags.DepthPriority)
+	gen := generator.NewNodeGenerator(flags.NumNodes, flags.Depth, flags.Width, false)
 	nodes := gen.GenerateRoot()
 	generator.SaveNodesToFile(nodes, flags.PathPrefix, flags.Filename, flags.Format)
 }
