@@ -44,7 +44,7 @@ func Run(csvFolder, csvInputPath, outFile, mode, targets string, execution bool)
 					panic(err)
 				}
 				if !execution {
-					outFile := fmt.Sprintf("%s-%d", outFile, i)
+					outFile := path.Join(csvFolder, fmt.Sprintf("%s-%d", outFile, len(inputData)))
 					parseToFile(inputData, mode, targets, outFile)
 					os.Exit(0)
 				} else {
@@ -79,26 +79,27 @@ func exec(inputData [][]string, reportFileName, modeStr, targetStr string) {
 	attacker := vegeta.NewAttacker(
 		vegeta.Timeout(60*time.Second),
 		vegeta.Workers(1))
-	//targeters := buildTargetersFromMap(parseToModeTarget(inputData, mode, targetStr))
-	targeter := buildTargeter(parseToModeTarget(inputData, mode, targetStr))
-
-	var metrics vegeta.Metrics
-	plotter := plot.New(plot.Title("test"))
-	for res := range attacker.Attack(targeter, rate, 10*time.Minute, mode.String()) {
-		metrics.Add(res)
-		fmt.Println(fmt.Sprintf("CODE: %d, ERROR: %s", res.Code, res.Error))
-		plotter.Add(res)
+	targeters := buildTargetersFromMap(parseToModeTarget(inputData, mode, targetStr))
+	//targeter := buildTargeter(parseToModeTarget(inputData, mode, targetStr))
+	for mode, targeter := range targeters {
+		var metrics vegeta.Metrics
+		plotter := plot.New(plot.Title("test"))
+		for res := range attacker.Attack(targeter, rate, 10*time.Minute, mode.String()) {
+			metrics.Add(res)
+			fmt.Println(fmt.Sprintf("CODE: %d, ERROR: %s", res.Code, res.Error))
+			plotter.Add(res)
+		}
+		metrics.Close()
+		outFile := createFile(reportFileName, &mode)
+		//plotter.WriteTo(outFile)
+		reporter := vegeta.NewHDRHistogramPlotReporter(&metrics)
+		reporter.Report(outFile)
+		//reporter := vegeta.NewJSONReporter(&metrics)
+		//err = reporter.Report(outFile)
+		//if err != nil {
+		//	panic(err)
+		//}
 	}
-	metrics.Close()
-	outFile := createFile(reportFileName, mode)
-	//plotter.WriteTo(outFile)
-	reporter := vegeta.NewHDRHistogramPlotReporter(&metrics)
-	reporter.Report(outFile)
-	//reporter := vegeta.NewJSONReporter(&metrics)
-	//err = reporter.Report(outFile)
-	//if err != nil {
-	//	panic(err)
-	//}
 
 }
 
@@ -108,15 +109,31 @@ func parseToFile(inputData [][]string, modeStr, targetStr, outFile string) {
 		log.Fatal(err)
 	}
 
-	file := createFile(outFile, mode)
+	subModes := mode.Expand()
+	fileMap := make(map[enums.Mode]*os.File)
+	for _, subMode := range subModes {
+		file := createFile(outFile, &subMode)
+		fileMap[subMode] = file
+	}
 
-	targets := parseToModeTarget(inputData, mode, targetStr)
-	for _, target := range targets {
-		_, err := file.WriteString(target.ToText())
-		if err != nil {
-			log.Fatal(err)
+	targetMap := parseToModeTarget(inputData, mode, targetStr)
+	for mode, targets := range targetMap {
+		for _, target := range targets {
+			_, err := fileMap[mode].WriteString(target.ToText())
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
+	//file := createFile(outFile, mode)
+	//
+	//targets := parseToModeTarget(inputData, mode, targetStr)
+	//for _, target := range targets {
+	//	_, err := file.WriteString(target.ToText())
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//}
 
 }
 
@@ -129,9 +146,9 @@ func createFile(outFileName string, mode *enums.Mode) *os.File {
 }
 
 func buildFileName(fileName string, mode *enums.Mode) string {
-	outFormat := "%s-%s.txt"
-	if strings.Contains(fileName, "output") {
-		outFormat = "%s-%s.html"
+	outFormat := "%s-%s-write.txt"
+	if mode.IsRead() {
+		outFormat = "%s-%s-read.txt"
 	}
 	return fmt.Sprintf(outFormat, fileName, mode.String())
 }
@@ -150,36 +167,35 @@ func buildTarget(mode enums.Mode, method, targets, parentId, nodeId string) Targ
 	}
 }
 
-func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string) []Target {
-	targets := make([]Target, 0)
-	for _, endpoint := range inputData[1:] {
-		for _, mode := range mode.Expand() {
-			if !mode.Is(enums.Recursive) {
-				target := buildTarget(mode, "POST", targetStr, endpoint[0], endpoint[1])
-				targets = append(targets, target)
-			}
-			targets = append(targets, buildTarget(mode, "GET", targetStr, endpoint[0], endpoint[1]))
-		}
-	}
-	return targets
-}
-
-//func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string) map[enums.Mode][]Target {
-//	modeTargets := make(map[enums.Mode][]Target)
-//	for i, endpoint := range inputData[1:] {
+//func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string) []Target {
+//	targets := make([]Target, 0)
+//	for _, endpoint := range inputData[1:] {
 //		for _, mode := range mode.Expand() {
 //			if !mode.Is(enums.Recursive) {
 //				target := buildTarget(mode, "POST", targetStr, endpoint[0], endpoint[1])
-//				modeTargets[mode] = append(modeTargets[mode], target)
+//				targets = append(targets, target)
 //			}
-//			if i == len(inputData)-1 {
-//				getEndpoint := buildTarget(mode, "GET", targetStr, endpoint[0], endpoint[1])
-//				modeTargets[mode] = append(modeTargets[mode], getEndpoint)
-//			}
+//			targets = append(targets, buildTarget(mode, "GET", targetStr, endpoint[0], endpoint[1]))
 //		}
 //	}
-//	return modeTargets
+//	return targets
 //}
+
+func parseToModeTarget(inputData [][]string, mode *enums.Mode, targetStr string) map[enums.Mode][]Target {
+	modeTargets := make(map[enums.Mode][]Target)
+	for _, endpoint := range inputData[1:] {
+		for _, mode := range mode.Expand() {
+			if !mode.IsRead() {
+				target := buildTarget(mode, "POST", targetStr, endpoint[0], endpoint[1])
+				modeTargets[mode] = append(modeTargets[mode], target)
+			} else {
+				getEndpoint := buildTarget(mode, "GET", targetStr, endpoint[0], endpoint[1])
+				modeTargets[mode] = append(modeTargets[mode], getEndpoint)
+			}
+		}
+	}
+	return modeTargets
+}
 
 func buildTargetersFromMap(input map[enums.Mode][]Target) map[enums.Mode]vegeta.Targeter {
 	targeters := make(map[enums.Mode]vegeta.Targeter)

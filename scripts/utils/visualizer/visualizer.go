@@ -2,138 +2,66 @@ package main
 
 import (
 	"flag"
-	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
+	"fmt"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
-	"github.com/F-Amaral/tcc/scripts/utils/parser"
-	"github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
 )
 
 type Flags struct {
 	fileName string
 }
 
+const path = "/Users/famaral/go/src/github.com/f-amaral/tcc/scripts/utils/loader/output/dataset_20_csv.csv"
+
 func parseFlags() Flags {
 	var flags Flags
-	flag.StringVar(&flags.fileName, "file", "/Users/famaral/go/src/github.com/f-amaral/tcc/scripts/utils/generator/tree.csv", "CSV file to parse")
+	flag.StringVar(&flags.fileName, "file", path, "CSV file to parse")
 	flag.Parse()
 	return flags
+}
+
+type Node struct {
+	Id       string
+	Children []*Node
+}
+
+func (n *Node) print(indent string) {
+	fmt.Println(n.Id)
+	for _, child := range n.Children {
+		fmt.Printf("%s└─ ", indent)
+		child.print(indent + "   ")
+	}
 }
 
 func main() {
 	flags := parseFlags()
 
-	csvData, err := csv.ReadFromCSV(flags.fileName)
+	data, err := csv.ReadFromCSV(flags.fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	adjNodes, err := parser.ParseData(csvData)
-	if err != nil {
-		panic(err)
-	}
+	nodes := make(map[string]*Node)
 
-	nestedNodes := parser.ConvertToNestedSet(adjNodes)
-
-	if err := termui.Init(); err != nil {
-		panic(err)
-	}
-	defer termui.Close()
-
-	tree := createNestedTree(nestedNodes)
-
-	x, y := termui.TerminalDimensions()
-
-	tree.SetRect(0, 0, x, y)
-	termui.Render(tree)
-
-	handleUiInput(tree)
-}
-
-func createNestedTree(nodes []entity.NestedNode) *widgets.Tree {
-	tree := widgets.NewTree()
-	tree.Title = "Tree"
-	tree.TextStyle = termui.NewStyle(termui.ColorGreen)
-	tree.SetNodes(createNestedTreeNodes(nodes))
-
-	return tree
-}
-
-func createNestedTreeNodes(nodes []entity.NestedNode) []*widgets.TreeNode {
-	var rootNodes []*widgets.TreeNode
-	for _, node := range nodes {
-		if node.ParentId == "" {
-			rootNode := &widgets.TreeNode{
-				Value:    node,
-				Expanded: true,
-				Nodes:    getNestedNodeChildren(nodes, node.Id),
-			}
-			rootNodes = append(rootNodes, rootNode)
+	// Initialize all nodes.
+	for _, line := range data[1:] {
+		parentId, childId := line[0], line[1]
+		if _, exists := nodes[parentId]; !exists {
+			nodes[parentId] = &Node{Id: parentId}
+		}
+		if _, exists := nodes[childId]; !exists {
+			nodes[childId] = &Node{Id: childId}
 		}
 	}
-	return rootNodes
-}
 
-func getNestedNodeChildren(nodes []entity.NestedNode, parentId string) []*widgets.TreeNode {
-	var children []*widgets.TreeNode
-	for _, node := range nodes {
-		if node.ParentId == parentId {
-			treeNode := &widgets.TreeNode{
-				Value:    node,
-				Expanded: true,
-			}
-			treeNode.Nodes = getNestedNodeChildren(nodes, node.Id)
-			children = append(children, treeNode)
-		}
+	// Set parent-child relationships.
+	for _, line := range data[1:] {
+		parentId, childId := line[0], line[1]
+		nodes[parentId].Children = append(nodes[parentId].Children, nodes[childId])
 	}
-	return children
-}
 
-func handleUiInput(tree *widgets.Tree) {
-	previousKey := ""
-	uiEvents := termui.PollEvents()
-	for {
-		e := <-uiEvents
-		switch e.ID {
-		case "q", "<C-c>":
-			return
-		case "j", "<Down>":
-			tree.ScrollDown()
-		case "k", "<Up>":
-			tree.ScrollUp()
-		case "<C-d>":
-			tree.ScrollHalfPageDown()
-		case "<C-u>":
-			tree.ScrollHalfPageUp()
-		case "<C-f>":
-			tree.ScrollPageDown()
-		case "<C-b>":
-			tree.ScrollPageUp()
-		case "g":
-			if previousKey == "g" {
-				tree.ScrollTop()
-			}
-		case "<Home>":
-			tree.ScrollTop()
-		case "<Enter>":
-			tree.ToggleExpand()
-		case "G", "<End>":
-			tree.ScrollBottom()
-		case "E":
-			tree.ExpandAll()
-		case "C":
-			tree.CollapseAll()
-		case "<Resize>":
-			x, y := termui.TerminalDimensions()
-			tree.SetRect(0, 0, x, y)
-		}
+	// Assume the root is the parent in the last element in data.
+	root := nodes[data[len(data)-1][0]]
 
-		if previousKey == "g" {
-			previousKey = ""
-		} else {
-			previousKey = e.ID
-		}
-
-		termui.Render(tree)
-	}
+	// Print the tree.
+	root.print("")
 }

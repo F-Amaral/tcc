@@ -91,7 +91,10 @@ func (s *nested) GetTree(ctx context.Context, parentId string) (*entity.Node, ap
 	}
 
 	rows, err := s.db.WithContext(ctx).Model(&contracts.Node{}).
-		Where("tree_id = ? AND lft >= ? AND rgt <= ?", parent.TreeId, parent.Left, parent.Right).
+		Where("tree_id = @tree_id AND lft >= @lft AND rgt <= @rgt",
+			sql.Named("tree_id, ", parent.TreeId),
+			sql.Named("lft", parent.Left),
+			sql.Named("rgt", parent.Right)).
 		Order("lft").Rows()
 	if err != nil {
 		return nil, s.handleGormError(err)

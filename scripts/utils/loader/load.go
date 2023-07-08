@@ -28,7 +28,7 @@ func parseFlags() *Flags {
 	flag.IntVar(&flags.StepNumNodes, "n-step", 10, "Step number of nodes")
 	flag.IntVar(&flags.Depth, "depth", 3, "Depth side of ratio with width")
 	flag.IntVar(&flags.Width, "width", 3, "width side of ratio with depth")
-	flag.StringVar(&flags.OutputFolder, "output-folder", "./output", "Output folder")
+	flag.StringVar(&flags.OutputFolder, "output-folder", "./output-local", "Output folder")
 	flag.StringVar(&flags.TargetPath, "target-path", "http://test.pi.hole:8080", "Target path")
 	flag.StringVar(&flags.Format, "format", "csv", "Output format: path, csv")
 	flag.BoolVar(&flags.DepthPriority, "depth-priority", true, "Depth priority")
@@ -53,12 +53,13 @@ func Load(flags *Flags) {
 
 		//db, _ := json.Marshal(nodes)
 		//fmt.Println(string(db))
+		outFolder := path.Join(flags.OutputFolder, fmt.Sprintf("%d-%d-%d", numNodes, flags.Depth, flags.Width))
 		datasetName := fmt.Sprintf("dataset_%d_%s.csv", numNodes, flags.Format)
-		dataFiles = append(dataFiles, path.Join(flags.OutputFolder, datasetName))
-		generator.SaveNodesToFile(nodes, flags.OutputFolder, datasetName, flags.Format)
+		dataFiles = append(dataFiles, path.Join(outFolder, datasetName))
+		generator.SaveNodesToFile(nodes, outFolder, datasetName, flags.Format)
+		vegeta.Run(outFolder, "", "vegeta", "all", "http://localhost:8080", false)
 	}
 
-	vegeta.Run(flags.OutputFolder, "", "input", "all", "http://test.pi.hole:8080", false)
 	if flags.exec {
 		vegeta.Run(flags.OutputFolder, "", "output", "all", "http://test.pi.hole:8080", true)
 	} else {

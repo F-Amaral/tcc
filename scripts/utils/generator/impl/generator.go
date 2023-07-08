@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"fmt"
 	"github.com/F-Amaral/tcc/pkg/tree/domain/entity"
 	"github.com/F-Amaral/tcc/scripts/utils/csv"
 	"github.com/google/uuid"
@@ -41,6 +40,10 @@ func (ng *NodeGenerator) Generate(parent *entity.Node, currentDepth int) {
 		for i := 0; i < ng.width && ng.numNodes > 0; i++ {
 			ng.GenerateChild(parent, currentDepth)
 		}
+	} else if currentDepth == ng.depth {
+		for i := 0; i < ng.width && ng.numNodes > 0; i++ {
+			ng.GenerateLeaf(parent, currentDepth)
+		}
 	}
 }
 
@@ -60,6 +63,22 @@ func (ng *NodeGenerator) GenerateChild(parent *entity.Node, currentDepth int) {
 	ng.numNodes--
 
 	ng.Generate(child, currentDepth+1)
+}
+
+func (ng *NodeGenerator) GenerateLeaf(parent *entity.Node, currentDepth int) {
+	if ng.numNodes <= 0 {
+		return
+	}
+
+	leafId := uuid.New()
+	leaf := &entity.Node{
+		Id:       leafId.String(),
+		ParentId: parent.Id,
+		Level:    currentDepth,
+		Children: []*entity.Node{},
+	}
+	parent.Children = append(parent.Children, leaf)
+	ng.numNodes--
 }
 
 func PostOrderTraversal(root *entity.Node) []entity.Node {
@@ -86,7 +105,7 @@ func SaveNodesToFile(node entity.Node, basePath, filename, format string) {
 		panic(err)
 	}
 
-	records := buildDataToFormat(nodes, format)
+	records := buildDataToFormat(nodes)
 
 	fullName := path.Join(basePath, filename)
 	if err := csv.WriteCSVFile(fullName, records); err != nil {
@@ -94,25 +113,14 @@ func SaveNodesToFile(node entity.Node, basePath, filename, format string) {
 	}
 }
 
-func buildDataToFormat(nodes []entity.Node, format string) [][]string {
+func buildDataToFormat(nodes []entity.Node) [][]string {
 	var records [][]string
-	switch format {
-	case "vegeta":
-		for _, node := range nodes {
-			if node.ParentId != "" {
-				record := []string{fmt.Sprintf("%s/%s", node.ParentId, node.Id)}
-				records = append(records, record)
-			}
-		}
-	default:
-		records = [][]string{[]string{"parentId", "id"}}
-		for _, node := range nodes {
-			if node.ParentId != "" {
-				record := []string{node.ParentId, node.Id}
-				records = append(records, record)
-			}
+	records = [][]string{[]string{"parentId", "id"}}
+	for _, node := range nodes {
+		if node.ParentId != "" {
+			record := []string{node.ParentId, node.Id}
+			records = append(records, record)
 		}
 	}
-
 	return records
 }

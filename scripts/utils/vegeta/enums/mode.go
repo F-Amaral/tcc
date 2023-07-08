@@ -9,10 +9,12 @@ type Mode string
 type ModeTemplate map[Mode][]string
 
 const (
-	PPT       Mode = "ppt"
-	Nested    Mode = "nested"
-	Recursive Mode = "recursive"
-	All       Mode = "all"
+	PPTRead     Mode = "ppt-read"
+	PPTWrite    Mode = "ppt"
+	NestedRead  Mode = "nested-read"
+	NestedWrite Mode = "nested"
+	Recursive   Mode = "recursive-read"
+	All         Mode = "all"
 
 	recursiveTemplate string = "%s/ppt/%s"
 	pptTemplate       string = "%s/ppt/%s?recursive=false"
@@ -30,14 +32,15 @@ func NameOf(value string) (*Mode, error) {
 }
 
 func (m Mode) String() string {
-	if m.Is(Recursive) {
-		return fmt.Sprintf("%s-%s", string(PPT), string(Recursive))
+	if strings.Contains(string(m), "-read") {
+		new := strings.ReplaceAll(string(m), "-read", "")
+		return new
 	}
 	return string(m)
 }
 
-func (m Mode) Is(mode Mode) bool {
-	return m == mode
+func (m Mode) IsRead() bool {
+	return m == PPTRead || m == NestedRead || m == Recursive
 }
 
 func (m Mode) Template() string {
@@ -45,7 +48,7 @@ func (m Mode) Template() string {
 }
 
 func modes() []Mode {
-	return []Mode{PPT, Nested, Recursive, All}
+	return []Mode{PPTRead, NestedRead, Recursive, All}
 }
 
 func (m Mode) Expand() []Mode {
@@ -54,16 +57,18 @@ func (m Mode) Expand() []Mode {
 
 func modesMap() map[Mode][]Mode {
 	return map[Mode][]Mode{
-		"ppt":    []Mode{PPT, Recursive},
-		"nested": []Mode{Nested},
-		"all":    []Mode{PPT, Nested, Recursive},
+		"ppt":    []Mode{PPTRead, PPTWrite, Recursive},
+		"nested": []Mode{NestedRead, NestedWrite},
+		"all":    []Mode{PPTRead, PPTWrite, NestedRead, NestedWrite, Recursive},
 	}
 }
 
 func modeTemplates() map[Mode]string {
 	return map[Mode]string{
-		PPT:       pptTemplate,
-		Nested:    nestedTemplate,
-		Recursive: recursiveTemplate,
+		PPTRead:     pptTemplate,
+		PPTWrite:    pptTemplate,
+		NestedWrite: nestedTemplate,
+		NestedRead:  nestedTemplate,
+		Recursive:   recursiveTemplate,
 	}
 }
